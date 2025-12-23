@@ -9,10 +9,9 @@ interface HeaderProps {
   showActivity: boolean;
   setShowActivity: (show: boolean) => void;
   onAddItem: () => void;
-  onProfile: () => void;
 }
 
-const Header = ({ showActivity, setShowActivity, onAddItem, onProfile }: HeaderProps) => {
+const Header = ({ showActivity, setShowActivity, onAddItem }: HeaderProps) => {
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
@@ -45,7 +44,7 @@ const Header = ({ showActivity, setShowActivity, onAddItem, onProfile }: HeaderP
           <span className="hidden sm:inline">Activity</span>
         </button>
 
-        <button onClick={onProfile} className="nav-button nav-button-default">
+        <button onClick={() => navigate("/profile")} className="nav-button nav-button-default">
           <User size={18} />
           <span className="hidden sm:inline">Profile</span>
         </button>

@@ -8,7 +8,7 @@ import SearchBar from "@/components/SearchBar";
 import ItemsList, { type Item } from "@/components/ItemsList";
 import ActivityLogPanel, { type ActivityLog } from "@/components/ActivityLogPanel";
 import AddItemModal from "@/components/AddItemModal";
-import ProfileModal from "@/components/ProfileModal";
+
 import RestockSuggestions from "@/components/RestockSuggestions";
 import {
   AlertDialog,
@@ -27,7 +27,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showActivity, setShowActivity] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
+  
   const [editItem, setEditItem] = useState<Item | null>(null);
   const [deleteItem, setDeleteItem] = useState<Item | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -222,7 +222,6 @@ const Dashboard = () => {
         showActivity={showActivity}
         setShowActivity={setShowActivity}
         onAddItem={() => setShowAddModal(true)}
-        onProfile={() => setShowProfileModal(true)}
       />
 
       <main className="container max-w-7xl mx-auto p-4 space-y-6">
@@ -255,12 +254,6 @@ const Dashboard = () => {
         }}
         onSubmit={handleAddOrEditItem}
         editItem={editItem}
-      />
-
-      <ProfileModal
-        open={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-        userEmail={userEmail}
       />
 
       <AlertDialog open={!!deleteItem} onOpenChange={() => setDeleteItem(null)}>

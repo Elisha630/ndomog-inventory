@@ -1,4 +1,13 @@
 project_id = "mienlzvjeyneepkxxnhs"
 
+[auth]
+site_url = "https://mienlzvjeyneepkxxnhs.lovable.app"
+
+[auth.email]
+enable_confirmations = true
+
+[auth.email.smtp]
+sender_name = "Ndomog-Investment"
+
 [functions.ai-inventory]
 verify_jwt = false
