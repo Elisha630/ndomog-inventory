@@ -1,1 +1,4 @@
 project_id = "mienlzvjeyneepkxxnhs"
+
+[functions.ai-inventory]
+verify_jwt = false

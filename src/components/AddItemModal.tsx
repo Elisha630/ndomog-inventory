@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Package, Upload, X, Loader2 } from "lucide-react";
+import { Package, Upload, X, Loader2, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,7 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) 
   const [quantity, setQuantity] = useState(0);
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
   const [uploading, setUploading] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -57,6 +58,39 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) 
     setSellingPrice(0);
     setQuantity(0);
     setLowStockThreshold(5);
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!name.trim()) {
+      toast.error("Please enter an item name first");
+      return;
+    }
+    if (!category.trim()) {
+      toast.error("Please enter a category first");
+      return;
+    }
+
+    setGeneratingDescription(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-inventory", {
+        body: {
+          type: "generate_description",
+          itemName: name,
+          category: category,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.result) {
+        setDetails(data.result);
+        toast.success("Description generated!");
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to generate description";
+      toast.error(message);
+    } finally {
+      setGeneratingDescription(false);
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,8 +124,9 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) 
 
       setPhotoUrl(publicUrl);
       toast.success("Image uploaded successfully");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to upload image");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to upload image";
+      toast.error(message);
     } finally {
       setUploading(false);
     }
@@ -158,7 +193,24 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="details">Details (optional)</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="details">Details (optional)</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-primary hover:text-primary/80 gap-1"
+                onClick={handleGenerateDescription}
+                disabled={generatingDescription || !name.trim() || !category.trim()}
+              >
+                {generatingDescription ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <Sparkles size={12} />
+                )}
+                {generatingDescription ? "Generating..." : "AI Generate"}
+              </Button>
+            </div>
             <Textarea
               id="details"
               placeholder="Additional details about the item..."

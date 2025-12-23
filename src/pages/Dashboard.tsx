@@ -9,6 +9,7 @@ import ItemsList, { type Item } from "@/components/ItemsList";
 import ActivityLogPanel, { type ActivityLog } from "@/components/ActivityLogPanel";
 import AddItemModal from "@/components/AddItemModal";
 import ProfileModal from "@/components/ProfileModal";
+import RestockSuggestions from "@/components/RestockSuggestions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -229,7 +230,10 @@ const Dashboard = () => {
 
         <StatsCards {...stats} />
 
-        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+          <RestockSuggestions items={items} />
+        </div>
 
         <ItemsList
           items={filteredItems}
