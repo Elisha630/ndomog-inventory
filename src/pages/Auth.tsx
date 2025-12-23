@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,50 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [showResendOption, setShowResendOption] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResendingEmail(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+      if (error) throw error;
+      toast({
+        title: "Verification email sent!",
+        description: "Please check your inbox and spam folder.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setResendingEmail(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setShowResendOption(false);
 
     try {
       if (isLogin) {
@@ -26,7 +64,12 @@ const Auth = () => {
           email,
           password,
         });
-        if (error) throw error;
+        if (error) {
+          if (error.message.toLowerCase().includes("email not confirmed")) {
+            setShowResendOption(true);
+          }
+          throw error;
+        }
         navigate("/");
       } else {
         const { error } = await supabase.auth.signUp({
@@ -44,7 +87,7 @@ const Auth = () => {
         }
         toast({
           title: "Check your email!",
-          description: "We've sent you a verification link. Please verify your email to continue.",
+          description: "We've sent you a verification link. Please check your inbox and spam folder.",
         });
         setIsLogin(true);
       }
@@ -111,6 +154,19 @@ const Auth = () => {
           >
             {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
           </Button>
+
+          {showResendOption && isLogin && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleResendVerification}
+              disabled={resendingEmail}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${resendingEmail ? 'animate-spin' : ''}`} />
+              {resendingEmail ? "Sending..." : "Resend verification email"}
+            </Button>
+          )}
         </form>
 
         <p className="text-center text-muted-foreground">
