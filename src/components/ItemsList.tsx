@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { Package, Plus, Minus, Trash2, Edit, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import PhotoViewerModal from "@/components/PhotoViewerModal";
 
 export interface Item {
@@ -28,9 +38,21 @@ interface ItemsListProps {
 
 const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onDeleteItem }: ItemsListProps) => {
   const [viewingPhoto, setViewingPhoto] = useState<{ url: string; name: string } | null>(null);
+  const [quantityChange, setQuantityChange] = useState<{ item: Item; change: number } | null>(null);
 
   const isLowStock = (item: Item) => item.quantity <= item.low_stock_threshold && item.quantity > 0;
   const isOutOfStock = (item: Item) => item.quantity === 0;
+
+  const handleQuantityChangeRequest = (item: Item, change: number) => {
+    setQuantityChange({ item, change });
+  };
+
+  const confirmQuantityChange = () => {
+    if (quantityChange) {
+      onUpdateQuantity(quantityChange.item, quantityChange.change);
+      setQuantityChange(null);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -102,7 +124,7 @@ const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onDeleteIte
                   variant="secondary"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => onUpdateQuantity(item, -1)}
+                  onClick={() => handleQuantityChangeRequest(item, -1)}
                   disabled={item.quantity <= 0}
                 >
                   <Minus size={14} />
@@ -116,7 +138,7 @@ const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onDeleteIte
                   variant="secondary"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => onUpdateQuantity(item, 1)}
+                  onClick={() => handleQuantityChangeRequest(item, 1)}
                 >
                   <Plus size={14} />
                 </Button>
@@ -153,6 +175,47 @@ const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onDeleteIte
           itemName={viewingPhoto.name}
         />
       )}
+
+      <AlertDialog open={!!quantityChange} onOpenChange={() => setQuantityChange(null)}>
+        <AlertDialogContent className="bg-popover border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {quantityChange?.change && quantityChange.change > 0 ? "Add to Stock" : "Remove from Stock"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {quantityChange?.change && quantityChange.change > 0 ? (
+                <>
+                  Add 1 unit to <span className="font-semibold text-foreground">{quantityChange?.item.name}</span>?
+                  <br />
+                  <span className="text-muted-foreground">
+                    Current: {quantityChange?.item.quantity} → New: {quantityChange?.item.quantity + 1}
+                  </span>
+                </>
+              ) : (
+                <>
+                  Remove 1 unit from <span className="font-semibold text-foreground">{quantityChange?.item.name}</span>?
+                  <br />
+                  <span className="text-muted-foreground">
+                    Current: {quantityChange?.item.quantity} → New: {Math.max(0, (quantityChange?.item.quantity || 0) - 1)}
+                  </span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmQuantityChange}
+              className={quantityChange?.change && quantityChange.change > 0 
+                ? "bg-success text-success-foreground hover:bg-success/90" 
+                : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              }
+            >
+              {quantityChange?.change && quantityChange.change > 0 ? "Add" : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
