@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Package, Upload, X, Loader2, Sparkles, Camera } from "lucide-react";
+import { Package, Upload, X, Loader2, Sparkles, Camera, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Item } from "./ItemsList";
@@ -19,11 +26,14 @@ interface AddItemModalProps {
   onClose: () => void;
   onSubmit: (item: Omit<Item, "id" | "created_by" | "created_at" | "updated_at">) => void;
   editItem?: Item | null;
+  categories: string[];
 }
 
-const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) => {
+const AddItemModal = ({ open, onClose, onSubmit, editItem, categories }: AddItemModalProps) => {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [isNewCategory, setIsNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [details, setDetails] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [buyingPrice, setBuyingPrice] = useState(0);
@@ -42,6 +52,8 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) 
     if (editItem) {
       setName(editItem.name);
       setCategory(editItem.category);
+      setIsNewCategory(false);
+      setNewCategoryName("");
       setDetails(editItem.details || "");
       setPhotoUrl(editItem.photo_url || "");
       setBuyingPrice(editItem.buying_price);
@@ -56,6 +68,8 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) 
   const resetForm = () => {
     setName("");
     setCategory("");
+    setIsNewCategory(false);
+    setNewCategoryName("");
     setDetails("");
     setPhotoUrl("");
     setBuyingPrice(0);
@@ -64,13 +78,24 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) 
     setLowStockThreshold(5);
   };
 
+  const handleCategoryChange = (value: string) => {
+    if (value === "new") {
+      setIsNewCategory(true);
+      setCategory("");
+    } else {
+      setIsNewCategory(false);
+      setCategory(value);
+    }
+  };
+
   const handleGenerateDescription = async () => {
     if (!name.trim()) {
       toast.error("Please enter an item name first");
       return;
     }
-    if (!category.trim()) {
-      toast.error("Please enter a category first");
+    const finalCategory = isNewCategory ? newCategoryName : category;
+    if (!finalCategory.trim()) {
+      toast.error("Please select a category first");
       return;
     }
 
@@ -80,7 +105,7 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) 
         body: {
           type: "generate_description",
           itemName: name,
-          category: category,
+          category: finalCategory,
         },
       });
 
@@ -218,9 +243,14 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const finalCategory = isNewCategory ? newCategoryName : category;
+    if (!finalCategory.trim()) {
+      toast.error("Please select or enter a category");
+      return;
+    }
     onSubmit({
       name,
-      category,
+      category: finalCategory,
       details: details || null,
       photo_url: photoUrl || null,
       buying_price: buyingPrice,
@@ -256,14 +286,37 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) 
 
           <div className="space-y-2">
             <Label htmlFor="category">Type / Category *</Label>
-            <Input
-              id="category"
-              placeholder="e.g., Electronics"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="bg-secondary border-border"
-              required
-            />
+            <Select 
+              value={isNewCategory ? "new" : category} 
+              onValueChange={handleCategoryChange}
+            >
+              <SelectTrigger className="bg-secondary border-border">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border">
+                <SelectItem value="new">
+                  <span className="flex items-center gap-2">
+                    <Plus size={14} />
+                    Add New Category
+                  </span>
+                </SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isNewCategory && (
+              <Input
+                id="newCategory"
+                placeholder="Enter new category name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                className="bg-secondary border-border mt-2"
+                required
+              />
+            )}
           </div>
 
           <div className="space-y-2">
@@ -275,7 +328,7 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem }: AddItemModalProps) 
                 size="sm"
                 className="h-7 text-xs text-primary hover:text-primary/80 gap-1"
                 onClick={handleGenerateDescription}
-                disabled={generatingDescription || !name.trim() || !category.trim()}
+                disabled={generatingDescription || !name.trim() || (!category.trim() && !newCategoryName.trim())}
               >
                 {generatingDescription ? (
                   <Loader2 size={12} className="animate-spin" />

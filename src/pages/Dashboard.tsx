@@ -25,6 +25,7 @@ const Dashboard = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showActivity, setShowActivity] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   
@@ -34,6 +35,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Get unique categories from items
+  const categories = Array.from(new Set(items.map((item) => item.category))).sort();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -195,15 +199,19 @@ const Dashboard = () => {
     setDeleteItem(null);
   };
 
-  const filteredItems = items.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredItems = items
+    .filter((item) => {
+      const matchesSearch =
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.category.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const stats = {
     totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
     totalCost: items.reduce((sum, item) => sum + item.buying_price * item.quantity, 0),
-    totalValue: items.reduce((sum, item) => sum + item.selling_price * item.quantity, 0),
     potentialProfit: items.reduce((sum, item) => sum + (item.selling_price - item.buying_price) * item.quantity, 0),
     lowStockCount: items.filter((item) => item.quantity <= (item.low_stock_threshold || 5) && item.quantity > 0).length + items.filter((item) => item.quantity === 0).length,
   };
@@ -230,7 +238,13 @@ const Dashboard = () => {
         <StatsCards {...stats} />
 
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+          <SearchBar 
+            searchQuery={searchQuery} 
+            setSearchQuery={setSearchQuery}
+            categories={categories}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+          />
           <RestockSuggestions items={items} />
         </div>
 
@@ -254,6 +268,7 @@ const Dashboard = () => {
         }}
         onSubmit={handleAddOrEditItem}
         editItem={editItem}
+        categories={categories}
       />
 
       <AlertDialog open={!!deleteItem} onOpenChange={() => setDeleteItem(null)}>
