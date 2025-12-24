@@ -196,6 +196,24 @@ const Dashboard = () => {
     }
   };
 
+  const handleBulkUpdateQuantity = async (updates: { item: Item; newQuantity: number }[]) => {
+    for (const update of updates) {
+      const { error } = await supabase
+        .from("items")
+        .update({ quantity: update.newQuantity })
+        .eq("id", update.item.id);
+
+      if (error) {
+        toast({ title: "Error", description: `Failed to update ${update.item.name}: ${error.message}`, variant: "destructive" });
+      }
+    }
+
+    // Log all updates as a single bulk action
+    const itemNames = updates.map((u) => u.item.name).join(", ");
+    await logActivity("updated", `${updates.length} items`, `Bulk updated: ${itemNames}`);
+    toast({ title: "Success", description: `Updated ${updates.length} item(s) successfully` });
+  };
+
   const handleDeleteItem = async () => {
     if (!deleteItem) return;
 
@@ -271,6 +289,7 @@ const Dashboard = () => {
             setShowAddModal(true);
           }}
           onUpdateQuantity={handleUpdateQuantity}
+          onBulkUpdateQuantity={handleBulkUpdateQuantity}
           onDeleteItem={(item) => setDeleteItem(item)}
         />
       </main>
