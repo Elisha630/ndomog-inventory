@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 interface Notification {
   id: string;
@@ -114,6 +115,38 @@ const NotificationBell = () => {
     setUnreadCount(0);
   };
 
+  const deleteNotification = async (notificationId: string) => {
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("id", notificationId);
+
+    if (error) {
+      toast.error("Failed to delete notification");
+    } else {
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      toast.success("Notification deleted");
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("user_id", user.id);
+
+    if (error) {
+      toast.error("Failed to clear notifications");
+    } else {
+      setNotifications([]);
+      setUnreadCount(0);
+      toast.success("All notifications cleared");
+    }
+  };
+
   const getActionColor = (action: string) => {
     switch (action) {
       case "added":
@@ -142,6 +175,16 @@ const NotificationBell = () => {
       <PopoverContent className="w-80 p-0 bg-popover border-border" align="end">
         <div className="flex items-center justify-between p-3 border-b border-border">
           <h4 className="font-semibold text-foreground">Notifications</h4>
+          {notifications.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground hover:text-destructive h-7 px-2"
+              onClick={clearAllNotifications}
+            >
+              Clear all
+            </Button>
+          )}
         </div>
         <div className="max-h-80 overflow-y-auto">
           {notifications.length === 0 ? (
@@ -152,11 +195,19 @@ const NotificationBell = () => {
             notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`p-3 border-b border-border last:border-0 ${
+                className={`p-3 border-b border-border last:border-0 group relative ${
                   !notification.is_read ? "bg-secondary/50" : ""
                 }`}
               >
-                <p className="text-sm text-foreground">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                  onClick={() => deleteNotification(notification.id)}
+                >
+                  <Trash2 size={14} />
+                </Button>
+                <p className="text-sm text-foreground pr-6">
                   <span className="font-medium">{notification.action_user_email}</span>{" "}
                   <span className={getActionColor(notification.action)}>
                     {notification.action}
@@ -164,7 +215,7 @@ const NotificationBell = () => {
                   <span className="font-medium">{notification.item_name}</span>
                 </p>
                 {notification.details && (
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1 pr-6">
                     {notification.details}
                   </p>
                 )}
