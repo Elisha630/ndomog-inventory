@@ -26,6 +26,7 @@ interface UserProfile {
   id: string;
   username: string | null;
   email: string;
+  avatar_url: string | null;
 }
 
 const Dashboard = () => {
@@ -111,7 +112,7 @@ const Dashboard = () => {
   const fetchUserProfiles = async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, username, email");
+      .select("id, username, email, avatar_url");
 
     if (!error && data) {
       const profileMap = new Map<string, string>();
@@ -120,6 +121,10 @@ const Dashboard = () => {
           profileMap.set(profile.id, profile.username);
         } else {
           profileMap.set(profile.id, profile.email.split("@")[0]);
+        }
+        // Also store avatar URL with a special key
+        if (profile.avatar_url) {
+          profileMap.set(`avatar_${profile.id}`, profile.avatar_url);
         }
       });
       setUserProfiles(profileMap);
@@ -238,13 +243,31 @@ const Dashboard = () => {
 
       if (data?.result) {
         try {
-          // Parse the JSON response
-          const normalized = JSON.parse(data.result);
+          // Extract JSON from the response (AI might return it wrapped in markdown)
+          let jsonStr = data.result;
           
-          // Check if anything changed
-          const nameChanged = normalized.name && normalized.name !== name;
-          const categoryChanged = normalized.category && normalized.category !== category;
-          const descriptionChanged = normalized.description && normalized.description !== (description || "");
+          // Remove markdown code blocks if present
+          const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+          if (jsonMatch) {
+            jsonStr = jsonMatch[1].trim();
+          }
+          
+          // Try to find JSON object in the response
+          const objectMatch = jsonStr.match(/\{[\s\S]*\}/);
+          if (objectMatch) {
+            jsonStr = objectMatch[0];
+          }
+          
+          const normalized = JSON.parse(jsonStr);
+          
+          // Check if anything changed (case-insensitive comparison to detect actual corrections)
+          const nameChanged = normalized.name && normalized.name.toLowerCase() !== name.toLowerCase() 
+            ? true 
+            : (normalized.name && normalized.name !== name);
+          const categoryChanged = normalized.category && normalized.category.toLowerCase() !== category.toLowerCase()
+            ? true
+            : (normalized.category && normalized.category !== category);
+          const descriptionChanged = normalized.description && description && normalized.description !== description;
           
           if (nameChanged || categoryChanged || descriptionChanged) {
             const updates: Record<string, string> = {};
@@ -252,15 +275,19 @@ const Dashboard = () => {
             if (categoryChanged) updates.category = normalized.category;
             if (descriptionChanged && normalized.description) updates.details = normalized.description;
             
-            await supabase
+            const { error: updateError } = await supabase
               .from("items")
               .update(updates)
               .eq("id", itemId);
               
-            console.log("Item normalized:", updates);
+            if (!updateError) {
+              console.log("Item normalized:", updates);
+              // Refresh items to show changes
+              fetchItems();
+            }
           }
         } catch (parseError) {
-          console.error("Failed to parse AI response:", parseError);
+          console.error("Failed to parse AI response:", data.result, parseError);
         }
       }
     } catch (error) {

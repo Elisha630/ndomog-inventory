@@ -6,6 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ interface UserProfile {
   id: string;
   username: string | null;
   email: string;
+  avatar_url: string | null;
 }
 
 // Notification sound as a base64 encoded short beep
@@ -70,7 +72,7 @@ const NotificationBell = () => {
   const fetchProfiles = async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, username, email");
+      .select("id, username, email, avatar_url");
 
     if (!error && data) {
       const profileMap = new Map<string, UserProfile>();
@@ -87,6 +89,11 @@ const NotificationBell = () => {
       return profile.username;
     }
     return email.split("@")[0];
+  };
+
+  const getAvatarUrl = (email: string): string | null => {
+    const profile = userProfiles.get(email);
+    return profile?.avatar_url || null;
   };
 
   const fetchNotifications = async () => {
@@ -222,38 +229,53 @@ const NotificationBell = () => {
               No notifications yet
             </div>
           ) : (
-            notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`p-3 border-b border-border last:border-0 group relative ${
-                  !notification.is_read ? "bg-secondary/50" : ""
-                }`}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                  onClick={() => deleteNotification(notification.id)}
+            notifications.map((notification) => {
+              const displayName = getDisplayName(notification.action_user_email);
+              const avatarUrl = getAvatarUrl(notification.action_user_email);
+              
+              return (
+                <div
+                  key={notification.id}
+                  className={`p-3 border-b border-border last:border-0 group relative ${
+                    !notification.is_read ? "bg-secondary/50" : ""
+                  }`}
                 >
-                  <Trash2 size={14} />
-                </Button>
-                <p className="text-sm text-foreground pr-6">
-                  <span className="font-medium">{getDisplayName(notification.action_user_email)}</span>{" "}
-                  <span className={getActionColor(notification.action)}>
-                    {notification.action}
-                  </span>{" "}
-                  <span className="font-medium">{notification.item_name}</span>
-                </p>
-                {notification.details && (
-                  <p className="text-xs text-muted-foreground mt-1 pr-6">
-                    {notification.details}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                </p>
-              </div>
-            ))
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                    onClick={() => deleteNotification(notification.id)}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                  <div className="flex items-start gap-2">
+                    <Avatar className="h-6 w-6 flex-shrink-0 mt-0.5">
+                      <AvatarImage src={avatarUrl || undefined} alt={displayName} />
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                        {displayName[0]?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0 pr-6">
+                      <p className="text-sm text-foreground">
+                        <span className="font-medium">{displayName}</span>{" "}
+                        <span className={getActionColor(notification.action)}>
+                          {notification.action}
+                        </span>{" "}
+                        <span className="font-medium">{notification.item_name}</span>
+                      </p>
+                      {notification.details && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {notification.details}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </PopoverContent>

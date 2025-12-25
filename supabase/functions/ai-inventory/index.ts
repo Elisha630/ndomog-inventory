@@ -124,29 +124,28 @@ serve(async (req) => {
 ${safeSalesHistory ? `- Recent Activity: ${safeSalesHistory}` : ""}
 
 Provide a brief recommendation with suggested restock quantity and reasoning in 2-3 sentences.`;
-    } else if (validatedData.type === "normalize_text") {
+  } else if (validatedData.type === "normalize_text") {
       const safeItemName = sanitizeInput(validatedData.itemName);
       const safeCategory = sanitizeInput(validatedData.category);
       const safeDescription = validatedData.description ? sanitizeInput(validatedData.description) : "";
       
-      systemPrompt = `You are a text normalization assistant for an inventory system. Your job is to correct spelling errors, fix casing, and standardize spacing in product names, categories, and descriptions. 
+      systemPrompt = `You are a text normalization assistant for an inventory system. Your ONLY job is to correct spelling errors, fix casing, and standardize spacing.
 
-Rules:
-- Use proper title case for product names (e.g., "Land Cruiser" not "landcruiser")
-- Fix common misspellings
-- Standardize compound words (e.g., "Land Cruiser" with space, not "Landcruiser")
-- Keep the meaning exactly the same, just fix formatting
-- Return ONLY a JSON object with the corrected fields, no other text
+STRICT RULES:
+1. Use proper title case for product names (e.g., "Land Cruiser" not "landcruiser" or "Landcruiser")
+2. Fix common misspellings and typos
+3. Standardize compound words with proper spacing
+4. Keep the meaning exactly the same
+5. Return ONLY a raw JSON object - no markdown, no code blocks, no explanation
+6. The JSON must have exactly three keys: "name", "category", "description"
 
-Example input: "landcruiser v8" in category "cars"
-Example output: {"name": "Land Cruiser V8", "category": "Cars", "description": ""}`;
+RESPONSE FORMAT (return ONLY this, nothing else):
+{"name": "Corrected Name", "category": "Corrected Category", "description": "Corrected description or empty string"}`;
 
-      userPrompt = `Normalize this inventory item:
-- Name: "${safeItemName}"
-- Category: "${safeCategory}"
-- Description: "${safeDescription}"
-
-Return ONLY a JSON object with corrected "name", "category", and "description" fields.`;
+      userPrompt = `Normalize and return JSON only:
+Name: "${safeItemName}"
+Category: "${safeCategory}"
+Description: "${safeDescription}"`;
     }
 
     console.log(`Processing ${validatedData.type} request for: ${validatedData.itemName}`);

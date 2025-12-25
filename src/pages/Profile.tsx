@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, AtSign } from "lucide-react";
+import { User, Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, AtSign, Camera, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import PinSetupModal from "@/components/PinSetupModal";
 import { useBackButton } from "@/hooks/useBackButton";
@@ -15,10 +16,13 @@ import { biometricService, BiometryType } from "@/services/biometricService";
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [loadingUsername, setLoadingUsername] = useState(false);
   const [showUsernameChange, setShowUsernameChange] = useState(false);
@@ -55,7 +59,7 @@ const Profile = () => {
       setUserEmail(session.user.email || null);
       checkPinStatus(session.user.id);
       checkBiometricAvailability();
-      fetchUsername(session.user.id);
+      fetchProfile(session.user.id);
     };
     
     checkAuth();
@@ -66,22 +70,92 @@ const Profile = () => {
       } else {
         setUserId(session.user.id);
         setUserEmail(session.user.email || null);
-        fetchUsername(session.user.id);
+        fetchProfile(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const fetchUsername = async (userId: string) => {
+  const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("username")
+      .select("username, avatar_url")
       .eq("id", userId)
       .maybeSingle();
 
-    if (!error && data?.username) {
-      setUsername(data.username);
+    if (!error && data) {
+      if (data.username) setUsername(data.username);
+      if (data.avatar_url) setAvatarUrl(data.avatar_url);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !userId) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Image must be less than 2MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${userId}/avatar.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(fileName);
+
+      // Add cache buster
+      const urlWithCacheBuster = `${publicUrl}?t=${Date.now()}`;
+
+      // Update profile
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: urlWithCacheBuster })
+        .eq("id", userId);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(urlWithCacheBuster);
+      toast({
+        title: "Success",
+        description: "Profile picture updated",
+      });
+    } catch (error: any) {
+      console.error("Avatar upload error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -340,6 +414,47 @@ const Profile = () => {
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-6">
+        {/* Profile Picture */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Camera className="text-primary" size={20} />
+              Profile Picture
+            </CardTitle>
+            <CardDescription>Upload a profile picture</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <Avatar className="h-24 w-24 border-2 border-border">
+                <AvatarImage src={avatarUrl || undefined} alt={username || "User"} />
+                <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                  {username ? username[0].toUpperCase() : userEmail?.[0]?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              {uploadingAvatar && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+            <Button
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+            >
+              <Upload className="mr-2" size={16} />
+              {avatarUrl ? "Change Photo" : "Upload Photo"}
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Current Account Info */}
         <Card>
           <CardHeader>
