@@ -196,6 +196,7 @@ const Dashboard = () => {
 
   const handleUpdateQuantity = async (item: Item, change: number) => {
     const newQuantity = Math.max(0, item.quantity + change);
+    const actualChange = newQuantity - item.quantity;
     
     const { error } = await supabase
       .from("items")
@@ -205,8 +206,11 @@ const Dashboard = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      const action = change > 0 ? "updated" : "updated";
-      const detail = change > 0 ? `Increased quantity to ${newQuantity}` : `Decreased quantity to ${newQuantity}`;
+      const action = actualChange > 0 ? "added" : "removed";
+      const absChange = Math.abs(actualChange);
+      const detail = actualChange > 0 
+        ? `Added ${absChange} unit${absChange !== 1 ? 's' : ''} (now ${newQuantity})` 
+        : `Removed ${absChange} unit${absChange !== 1 ? 's' : ''} (now ${newQuantity})`;
       await logActivity(action, item.name, detail);
     }
   };
@@ -223,9 +227,13 @@ const Dashboard = () => {
       }
     }
 
-    // Log all updates as a single bulk action
-    const itemNames = updates.map((u) => u.item.name).join(", ");
-    await logActivity("updated", `${updates.length} items`, `Bulk updated: ${itemNames}`);
+    // Log all updates as a single bulk action with quantity changes
+    const itemDetails = updates.map((u) => {
+      const change = u.newQuantity - u.item.quantity;
+      const changeText = change > 0 ? `+${change}` : `${change}`;
+      return `${u.item.name} (${changeText})`;
+    }).join(", ");
+    await logActivity("updated", `${updates.length} items`, `Bulk updated: ${itemDetails}`);
     toast({ title: "Success", description: `Updated ${updates.length} item(s) successfully` });
   };
 
