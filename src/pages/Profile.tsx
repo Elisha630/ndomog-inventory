@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Trash2 } from "lucide-react";
+import { User, Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import PinSetupModal from "@/components/PinSetupModal";
 import { useBackButton } from "@/hooks/useBackButton";
+import { biometricService, BiometryType } from "@/services/biometricService";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -30,6 +31,11 @@ const Profile = () => {
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [loadingPin, setLoadingPin] = useState(true);
 
+  // Biometric settings
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometryType, setBiometryType] = useState<BiometryType>(BiometryType.NONE);
+
   // Handle back button
   useBackButton(() => navigate("/"));
 
@@ -43,6 +49,7 @@ const Profile = () => {
       setUserId(session.user.id);
       setUserEmail(session.user.email || null);
       checkPinStatus(session.user.id);
+      checkBiometricAvailability();
     };
     
     checkAuth();
@@ -59,16 +66,23 @@ const Profile = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const checkBiometricAvailability = async () => {
+    const result = await biometricService.isAvailable();
+    setBiometricAvailable(result.isAvailable);
+    setBiometryType(result.biometryType);
+  };
+
   const checkPinStatus = async (userId: string) => {
     setLoadingPin(true);
     const { data, error } = await supabase
       .from("user_pins")
-      .select("is_enabled")
+      .select("is_enabled, biometric_enabled")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (!error && data) {
       setHasPinEnabled(data.is_enabled);
+      setBiometricEnabled(data.biometric_enabled || false);
     }
     setLoadingPin(false);
   };
@@ -94,11 +108,56 @@ const Profile = () => {
         });
       } else {
         setHasPinEnabled(false);
+        setBiometricEnabled(false);
         toast({
           title: "PIN Disabled",
           description: "Your PIN lock has been removed",
         });
       }
+    }
+  };
+
+  const handleToggleBiometric = async () => {
+    if (!userId || !hasPinEnabled) return;
+
+    const newValue = !biometricEnabled;
+
+    if (newValue) {
+      // Test biometric authentication first
+      const success = await biometricService.authenticate({
+        reason: "Verify your identity to enable biometric unlock",
+        title: "Enable Biometrics",
+      });
+
+      if (!success) {
+        toast({
+          title: "Error",
+          description: "Biometric authentication failed",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const { error } = await supabase
+      .from("user_pins")
+      .update({ biometric_enabled: newValue })
+      .eq("user_id", userId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update biometric settings",
+        variant: "destructive",
+      });
+    } else {
+      setBiometricEnabled(newValue);
+      toast({
+        title: newValue ? "Biometrics Enabled" : "Biometrics Disabled",
+        description: newValue 
+          ? `You can now use ${biometricService.getBiometryTypeName(biometryType)} to unlock` 
+          : "Biometric unlock has been disabled",
+      });
     }
   };
 
@@ -381,14 +440,35 @@ const Profile = () => {
               />
             </div>
             {hasPinEnabled && (
-              <Button
-                variant="secondary"
-                onClick={() => setShowPinSetup(true)}
-                className="w-full"
-              >
-                <Lock className="mr-2" size={16} />
-                Change PIN
-              </Button>
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowPinSetup(true)}
+                  className="w-full"
+                >
+                  <Lock className="mr-2" size={16} />
+                  Change PIN
+                </Button>
+
+                {/* Biometric Option */}
+                {biometricAvailable && (
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <div>
+                      <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                        <Fingerprint size={16} className="text-primary" />
+                        {biometricService.getBiometryTypeName(biometryType)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Use biometrics as an alternative to PIN
+                      </p>
+                    </div>
+                    <Switch
+                      checked={biometricEnabled}
+                      onCheckedChange={handleToggleBiometric}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

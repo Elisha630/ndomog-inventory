@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Lock, Delete } from "lucide-react";
+import { Lock, Delete, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { biometricService, BiometryType } from "@/services/biometricService";
 
 interface PinLockScreenProps {
   onUnlock: () => void;
@@ -15,6 +16,13 @@ const PinLockScreen = ({ onUnlock, userId }: PinLockScreenProps) => {
   const [attempts, setAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [lockTimeRemaining, setLockTimeRemaining] = useState(0);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometryType, setBiometryType] = useState<BiometryType>(BiometryType.NONE);
+
+  useEffect(() => {
+    checkBiometricAvailability();
+  }, [userId]);
 
   useEffect(() => {
     if (isLocked && lockTimeRemaining > 0) {
@@ -27,6 +35,40 @@ const PinLockScreen = ({ onUnlock, userId }: PinLockScreenProps) => {
       setAttempts(0);
     }
   }, [isLocked, lockTimeRemaining]);
+
+  const checkBiometricAvailability = async () => {
+    // Check if device supports biometrics
+    const result = await biometricService.isAvailable();
+    setBiometricAvailable(result.isAvailable);
+    setBiometryType(result.biometryType);
+
+    if (result.isAvailable) {
+      // Check if user has enabled biometrics
+      const { data } = await supabase
+        .from("user_pins")
+        .select("biometric_enabled")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (data?.biometric_enabled) {
+        setBiometricEnabled(true);
+        // Auto-trigger biometric authentication
+        handleBiometricAuth();
+      }
+    }
+  };
+
+  const handleBiometricAuth = async () => {
+    const success = await biometricService.authenticate({
+      reason: "Verify your identity to unlock Ndomog Investment",
+      title: "Unlock App",
+      subtitle: "Use biometrics to access your inventory",
+    });
+
+    if (success) {
+      onUnlock();
+    }
+  };
 
   const handleNumberPress = (num: string) => {
     if (isLocked || pin.length >= 6) return;
@@ -65,9 +107,9 @@ const PinLockScreen = ({ onUnlock, userId }: PinLockScreenProps) => {
       .from("user_pins")
       .select("pin_hash")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError) {
+    if (fetchError || !data) {
       toast.error("Failed to verify PIN");
       return;
     }
@@ -94,6 +136,8 @@ const PinLockScreen = ({ onUnlock, userId }: PinLockScreenProps) => {
       verifyPin();
     }
   }, [pin]);
+
+  const biometryName = biometricService.getBiometryTypeName(biometryType);
 
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col items-center justify-center p-6">
@@ -180,6 +224,19 @@ const PinLockScreen = ({ onUnlock, userId }: PinLockScreenProps) => {
         >
           Unlock
         </Button>
+
+        {/* Biometric button */}
+        {biometricAvailable && biometricEnabled && (
+          <Button
+            variant="outline"
+            className="w-full max-w-[280px] flex items-center gap-2"
+            onClick={handleBiometricAuth}
+            disabled={isLocked}
+          >
+            <Fingerprint size={20} />
+            Use {biometryName}
+          </Button>
+        )}
       </div>
     </div>
   );

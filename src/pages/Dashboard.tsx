@@ -96,9 +96,14 @@ const Dashboard = () => {
   };
 
   const fetchActivityLogs = async () => {
+    // Calculate the date 20 days ago
+    const twentyDaysAgo = new Date();
+    twentyDaysAgo.setDate(twentyDaysAgo.getDate() - 20);
+
     const { data, error } = await supabase
       .from("activity_logs")
       .select("*")
+      .gte("created_at", twentyDaysAgo.toISOString())
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -106,6 +111,13 @@ const Dashboard = () => {
       console.error("Error fetching activity logs:", error);
     } else {
       setActivityLogs(data || []);
+    }
+
+    // Trigger cleanup of old logs (fire and forget)
+    try {
+      supabase.rpc("cleanup_old_activity_logs");
+    } catch {
+      // Ignore errors - cleanup is best effort
     }
   };
 

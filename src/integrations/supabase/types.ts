@@ -166,6 +166,7 @@ export type Database = {
       }
       user_pins: {
         Row: {
+          biometric_enabled: boolean
           created_at: string
           id: string
           is_enabled: boolean
@@ -174,6 +175,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          biometric_enabled?: boolean
           created_at?: string
           id?: string
           is_enabled?: boolean
@@ -182,6 +184,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          biometric_enabled?: boolean
           created_at?: string
           id?: string
           is_enabled?: boolean
@@ -196,7 +199,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_activity_logs: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

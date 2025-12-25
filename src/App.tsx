@@ -36,7 +36,7 @@ const AppContent = () => {
         .from("user_pins")
         .select("is_enabled")
         .eq("user_id", session.user.id)
-        .single();
+        .maybeSingle();
 
       if (data?.is_enabled) {
         setIsLocked(true);
@@ -54,7 +54,7 @@ const AppContent = () => {
           .from("user_pins")
           .select("is_enabled")
           .eq("user_id", session.user.id)
-          .single()
+          .maybeSingle()
           .then(({ data }) => {
             if (data?.is_enabled) {
               setIsLocked(true);
