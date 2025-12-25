@@ -10,4 +10,4 @@ enable_confirmations = true
 sender_name = "Ndomog-Investment"
 
 [functions.ai-inventory]
-verify_jwt = false
+verify_jwt = true
