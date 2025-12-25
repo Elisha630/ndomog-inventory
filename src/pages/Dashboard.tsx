@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useBackButton } from "@/hooks/useBackButton";
 import Header from "@/components/Header";
 import StatsCards from "@/components/StatsCards";
 import SearchBar from "@/components/SearchBar";
@@ -44,8 +45,12 @@ const Dashboard = () => {
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [userProfiles, setUserProfiles] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Use back button hook to handle phone back button
+  useBackButton();
 
   // Get unique categories from items
   const categories = Array.from(new Set(items.map((item) => item.category))).sort();
@@ -59,10 +64,10 @@ const Dashboard = () => {
       }
       setUserEmail(session.user.email || null);
       
-      // Check if user has a username
+      // Check if user has a username and get avatar
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username")
+        .select("username, avatar_url")
         .eq("id", session.user.id)
         .maybeSingle();
       
@@ -70,6 +75,10 @@ const Dashboard = () => {
         setCurrentUsername(profile.username);
       } else {
         setShowUsernamePrompt(true);
+      }
+      
+      if (profile?.avatar_url) {
+        setCurrentAvatarUrl(profile.avatar_url);
       }
       
       setLoading(false);
@@ -446,6 +455,8 @@ const Dashboard = () => {
         showActivity={showActivity}
         setShowActivity={setShowActivity}
         onAddItem={() => setShowAddModal(true)}
+        avatarUrl={currentAvatarUrl}
+        username={currentUsername}
       />
 
       <main className="container max-w-7xl mx-auto p-4 space-y-6">

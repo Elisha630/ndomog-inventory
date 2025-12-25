@@ -183,11 +183,17 @@ const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onBulkUpdat
               onOpenChange={() => !selectionMode && toggleExpanded(item.id)}
             >
               <div
-                className={`stat-card animate-fade-in relative p-3 ${
+                className={`stat-card animate-fade-in relative p-3 cursor-pointer ${
                   isOutOfStock(item) ? "border-destructive/50" : isLowStock(item) ? "border-warning/50" : ""
                 } ${selectionMode && selectedItems.has(item.id) ? "ring-2 ring-primary" : ""}`}
                 style={{ animationDelay: `${index * 30}ms` }}
-                onClick={selectionMode ? () => toggleItemSelection(item.id) : undefined}
+                onClick={() => {
+                  if (selectionMode) {
+                    toggleItemSelection(item.id);
+                  } else {
+                    toggleExpanded(item.id);
+                  }
+                }}
               >
                 {selectionMode && (
                   <div className="absolute top-2 left-2 z-10">
@@ -237,11 +243,9 @@ const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onBulkUpdat
                   </div>
                   
                   {!selectionMode && (
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
-                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      </Button>
-                    </CollapsibleTrigger>
+                    <div className="h-7 w-7 flex-shrink-0 flex items-center justify-center">
+                      {isExpanded ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
+                    </div>
                   )}
                 </div>
 

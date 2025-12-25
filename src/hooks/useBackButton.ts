@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 type CloseHandler = () => boolean;
 
@@ -12,6 +13,8 @@ export const registerCloseHandler = (id: string, handler: CloseHandler) => {
 
 export const useBackButton = (onBack?: () => void) => {
   const hasHandledRef = useRef(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const handleBack = useCallback(() => {
     // Try to close any open modal first
@@ -27,8 +30,14 @@ export const useBackButton = (onBack?: () => void) => {
       return true;
     }
     
+    // If not on home page, navigate to home
+    if (location.pathname !== "/") {
+      navigate("/");
+      return true;
+    }
+    
     return false;
-  }, [onBack]);
+  }, [onBack, location.pathname, navigate]);
 
   useEffect(() => {
     // Push a state to history when component mounts

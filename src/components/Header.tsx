@@ -3,15 +3,23 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 import NotificationBell from "@/components/NotificationBell";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface HeaderProps {
   showActivity: boolean;
   setShowActivity: (show: boolean) => void;
   onAddItem: () => void;
+  avatarUrl?: string | null;
+  username?: string | null;
 }
 
-const Header = ({ showActivity, setShowActivity, onAddItem }: HeaderProps) => {
+const Header = ({ showActivity, setShowActivity, onAddItem, avatarUrl, username }: HeaderProps) => {
   const navigate = useNavigate();
+
+  const getInitials = (name?: string | null) => {
+    if (!name) return "U";
+    return name.charAt(0).toUpperCase();
+  };
 
   return (
     <header className="flex items-center justify-between px-4 py-3 border-b border-border">
@@ -36,8 +44,13 @@ const Header = ({ showActivity, setShowActivity, onAddItem }: HeaderProps) => {
           <span className="hidden sm:inline">Add Item</span>
         </Button>
 
-        <button onClick={() => navigate("/profile")} className="nav-button nav-button-default">
-          <User size={18} />
+        <button onClick={() => navigate("/profile")} className="p-1 rounded-full hover:bg-secondary transition-colors">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={avatarUrl || undefined} alt={username || "User"} />
+            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+              {getInitials(username)}
+            </AvatarFallback>
+          </Avatar>
         </button>
       </nav>
     </header>
