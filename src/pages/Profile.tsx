@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint } from "lucide-react";
+import { User, Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, AtSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,11 @@ const Profile = () => {
   
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [newUsername, setNewUsername] = useState("");
+  const [loadingUsername, setLoadingUsername] = useState(false);
+  const [showUsernameChange, setShowUsernameChange] = useState(false);
+  const [usernameError, setUsernameError] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -50,6 +55,7 @@ const Profile = () => {
       setUserEmail(session.user.email || null);
       checkPinStatus(session.user.id);
       checkBiometricAvailability();
+      fetchUsername(session.user.id);
     };
     
     checkAuth();
@@ -60,11 +66,24 @@ const Profile = () => {
       } else {
         setUserId(session.user.id);
         setUserEmail(session.user.email || null);
+        fetchUsername(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const fetchUsername = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!error && data?.username) {
+      setUsername(data.username);
+    }
+  };
 
   const checkBiometricAvailability = async () => {
     const result = await biometricService.isAvailable();
@@ -158,6 +177,71 @@ const Profile = () => {
           ? `You can now use ${biometricService.getBiometryTypeName(biometryType)} to unlock` 
           : "Biometric unlock has been disabled",
       });
+    }
+  };
+
+  const validateUsername = (value: string): string | null => {
+    if (value.length < 3) {
+      return "Username must be at least 3 characters";
+    }
+    if (value.length > 20) {
+      return "Username must be less than 20 characters";
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+      return "Username can only contain letters, numbers, and underscores";
+    }
+    return null;
+  };
+
+  const handleUpdateUsername = async () => {
+    const validationError = validateUsername(newUsername);
+    if (validationError) {
+      setUsernameError(validationError);
+      return;
+    }
+
+    if (!userId) return;
+
+    setLoadingUsername(true);
+    setUsernameError("");
+
+    try {
+      // Check if username is already taken
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", newUsername.toLowerCase())
+        .neq("id", userId)
+        .maybeSingle();
+
+      if (existing) {
+        setUsernameError("Username is already taken");
+        setLoadingUsername(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ username: newUsername.toLowerCase() })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      setUsername(newUsername.toLowerCase());
+      toast({
+        title: "Success",
+        description: "Username updated successfully",
+      });
+      setShowUsernameChange(false);
+      setNewUsername("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingUsername(false);
     }
   };
 
@@ -265,11 +349,90 @@ const Profile = () => {
             </CardTitle>
             <CardDescription>Your current account details</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <div className="flex items-center gap-3 p-3 bg-secondary rounded-lg">
               <Mail className="text-muted-foreground" size={18} />
               <span className="text-foreground">{userEmail}</span>
             </div>
+            <div className="flex items-center gap-3 p-3 bg-secondary rounded-lg">
+              <AtSign className="text-muted-foreground" size={18} />
+              <span className="text-foreground">
+                {username ? `@${username}` : <span className="text-muted-foreground italic">No username set</span>}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Change Username */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AtSign className="text-primary" size={20} />
+              Change Username
+            </CardTitle>
+            <CardDescription>Update your display name (shown in activity logs)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {showUsernameChange ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newUsername">New Username</Label>
+                  <Input
+                    id="newUsername"
+                    type="text"
+                    placeholder="Enter new username"
+                    value={newUsername}
+                    onChange={(e) => {
+                      setNewUsername(e.target.value);
+                      setUsernameError("");
+                    }}
+                    className="bg-secondary border-border"
+                  />
+                  {usernameError && (
+                    <p className="text-sm text-destructive">{usernameError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    3-20 characters, letters, numbers, and underscores only
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setShowUsernameChange(false);
+                      setNewUsername("");
+                      setUsernameError("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleUpdateUsername}
+                    disabled={loadingUsername || !newUsername.trim()}
+                  >
+                    {loadingUsername ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Update Username
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="secondary"
+                onClick={() => setShowUsernameChange(true)}
+              >
+                <AtSign className="mr-2" size={16} />
+                {username ? "Change Username" : "Set Username"}
+              </Button>
+            )}
           </CardContent>
         </Card>
 
