@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Package, Plus, Minus, Trash2, Edit, AlertTriangle, CheckSquare, Square, Layers } from "lucide-react";
+import { Package, Plus, Minus, Trash2, Edit, AlertTriangle, CheckSquare, Square, Layers, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -12,6 +12,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import PhotoViewerModal from "@/components/PhotoViewerModal";
 import BulkUpdateModal from "@/components/BulkUpdateModal";
 
@@ -45,6 +50,7 @@ const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onBulkUpdat
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const isLowStock = (item: Item) => item.quantity <= item.low_stock_threshold && item.quantity > 0;
   const isOutOfStock = (item: Item) => item.quantity === 0;
@@ -94,6 +100,18 @@ const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onBulkUpdat
 
   const getSelectedItemsList = () => {
     return items.filter((item) => selectedItems.has(item.id));
+  };
+
+  const toggleExpanded = (itemId: string) => {
+    setExpandedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
   };
 
   if (items.length === 0) {
@@ -155,127 +173,169 @@ const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onBulkUpdat
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((item, index) => (
-          <div
-            key={item.id}
-            className={`stat-card space-y-3 animate-fade-in relative ${
-              isOutOfStock(item) ? "border-destructive/50" : isLowStock(item) ? "border-warning/50" : ""
-            } ${selectionMode && selectedItems.has(item.id) ? "ring-2 ring-primary" : ""}`}
-            style={{ animationDelay: `${index * 50}ms` }}
-            onClick={selectionMode ? () => toggleItemSelection(item.id) : undefined}
-          >
-            {selectionMode && (
-              <div className="absolute top-2 left-2 z-10">
-                <Checkbox
-                  checked={selectedItems.has(item.id)}
-                  onCheckedChange={() => toggleItemSelection(item.id)}
-                  className="h-5 w-5"
-                />
-              </div>
-            )}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {items.map((item, index) => {
+          const isExpanded = expandedItems.has(item.id);
+          return (
+            <Collapsible
+              key={item.id}
+              open={isExpanded}
+              onOpenChange={() => !selectionMode && toggleExpanded(item.id)}
+            >
+              <div
+                className={`stat-card animate-fade-in relative p-3 ${
+                  isOutOfStock(item) ? "border-destructive/50" : isLowStock(item) ? "border-warning/50" : ""
+                } ${selectionMode && selectedItems.has(item.id) ? "ring-2 ring-primary" : ""}`}
+                style={{ animationDelay: `${index * 30}ms` }}
+                onClick={selectionMode ? () => toggleItemSelection(item.id) : undefined}
+              >
+                {selectionMode && (
+                  <div className="absolute top-2 left-2 z-10">
+                    <Checkbox
+                      checked={selectedItems.has(item.id)}
+                      onCheckedChange={() => toggleItemSelection(item.id)}
+                      className="h-5 w-5"
+                    />
+                  </div>
+                )}
 
-            {(isLowStock(item) || isOutOfStock(item)) && (
-              <div className={`absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
-                isOutOfStock(item) ? "bg-destructive text-destructive-foreground" : "bg-warning text-warning-foreground"
-              }`}>
-                <AlertTriangle size={12} />
-                {isOutOfStock(item) ? "Out of Stock" : "Low Stock"}
-              </div>
-            )}
-
-            <div className={`flex items-start justify-between ${selectionMode ? "pl-7" : ""}`}>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground truncate">{item.name}</h3>
-                <p className="text-sm text-muted-foreground">{item.category}</p>
-              </div>
-              {item.photo_url && (
-                <img
-                  src={item.photo_url}
-                  alt={item.name}
-                  className="w-12 h-12 rounded-lg object-cover ml-2 cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setViewingPhoto({ url: item.photo_url!, name: item.name });
-                  }}
-                />
-              )}
-            </div>
-
-            {item.details && (
-              <p className="text-sm text-muted-foreground line-clamp-2">{item.details}</p>
-            )}
-
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <span className="text-muted-foreground">Buy: </span>
-                <span className="text-foreground">KES {item.buying_price.toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Sell: </span>
-                <span className="text-success">KES {item.selling_price.toLocaleString()}</span>
-              </div>
-            </div>
-
-            {!selectionMode && (
-              <div className="flex items-center justify-between pt-2 border-t border-border">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleQuantityChangeRequest(item, -1)}
-                    disabled={item.quantity <= 0}
-                  >
-                    <Minus size={14} />
-                  </Button>
-                  <span className={`font-semibold w-8 text-center ${
-                    isOutOfStock(item) ? "text-destructive" : isLowStock(item) ? "text-warning" : "text-foreground"
+                {(isLowStock(item) || isOutOfStock(item)) && (
+                  <div className={`absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-0.5 ${
+                    isOutOfStock(item) ? "bg-destructive text-destructive-foreground" : "bg-warning text-warning-foreground"
                   }`}>
-                    {item.quantity}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleQuantityChangeRequest(item, 1)}
-                  >
-                    <Plus size={14} />
-                  </Button>
+                    <AlertTriangle size={10} />
+                    {isOutOfStock(item) ? "Out" : "Low"}
+                  </div>
+                )}
+
+                {/* Compact view - always visible */}
+                <div className={`flex items-center justify-between gap-2 ${selectionMode ? "pl-6" : ""}`}>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {item.photo_url && (
+                      <img
+                        src={item.photo_url}
+                        alt={item.name}
+                        className="w-10 h-10 rounded-md object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewingPhoto({ url: item.photo_url!, name: item.name });
+                        }}
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-foreground text-sm truncate">{item.name}</h3>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{item.category}</span>
+                        <span>•</span>
+                        <span className={`font-semibold ${
+                          isOutOfStock(item) ? "text-destructive" : isLowStock(item) ? "text-warning" : "text-foreground"
+                        }`}>
+                          Qty: {item.quantity}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {!selectionMode && (
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </Button>
+                    </CollapsibleTrigger>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                    onClick={() => onEditItem(item)}
-                  >
-                    <Edit size={14} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => onDeleteItem(item)}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-              </div>
-            )}
+                {/* Expanded content */}
+                <CollapsibleContent className="mt-3 space-y-3">
+                  {item.details && (
+                    <p className="text-xs text-muted-foreground">{item.details}</p>
+                  )}
 
-            {selectionMode && (
-              <div className="flex items-center justify-center pt-2 border-t border-border">
-                <span className={`font-semibold ${
-                  isOutOfStock(item) ? "text-destructive" : isLowStock(item) ? "text-warning" : "text-foreground"
-                }`}>
-                  Qty: {item.quantity}
-                </span>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-secondary/50 rounded-md p-2">
+                      <span className="text-muted-foreground block">Buying</span>
+                      <span className="text-foreground font-medium">KES {item.buying_price.toLocaleString()}</span>
+                    </div>
+                    <div className="bg-secondary/50 rounded-md p-2">
+                      <span className="text-muted-foreground block">Selling</span>
+                      <span className="text-success font-medium">KES {item.selling_price.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {!selectionMode && (
+                    <div className="flex items-center justify-between pt-2 border-t border-border">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuantityChangeRequest(item, -1);
+                          }}
+                          disabled={item.quantity <= 0}
+                        >
+                          <Minus size={12} />
+                        </Button>
+                        <span className={`font-semibold w-8 text-center text-sm ${
+                          isOutOfStock(item) ? "text-destructive" : isLowStock(item) ? "text-warning" : "text-foreground"
+                        }`}>
+                          {item.quantity}
+                        </span>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuantityChangeRequest(item, 1);
+                          }}
+                        >
+                          <Plus size={12} />
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditItem(item);
+                          }}
+                        >
+                          <Edit size={12} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteItem(item);
+                          }}
+                        >
+                          <Trash2 size={12} />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CollapsibleContent>
+
+                {selectionMode && (
+                  <div className="flex items-center justify-center pt-2 mt-2 border-t border-border">
+                    <span className={`text-sm font-semibold ${
+                      isOutOfStock(item) ? "text-destructive" : isLowStock(item) ? "text-warning" : "text-foreground"
+                    }`}>
+                      Qty: {item.quantity}
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
+            </Collapsible>
+          );
+        })}
       </div>
 
       {viewingPhoto && (
