@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Item } from "./ItemsList";
 import BarcodeScanner from "./BarcodeScanner";
+import { useModalBackHandler } from "@/hooks/useBackButton";
 
 interface AddItemModalProps {
   open: boolean;
@@ -48,6 +49,9 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem, categories }: AddItem
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Handle back button for modal
+  useModalBackHandler(open, onClose, "add-item-modal");
 
   useEffect(() => {
     if (editItem) {

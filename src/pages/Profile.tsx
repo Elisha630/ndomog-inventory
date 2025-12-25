@@ -1,17 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Mail, Lock, ArrowLeft, Check, Loader2, LogOut } from "lucide-react";
+import { User, Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import PinSetupModal from "@/components/PinSetupModal";
+import { useBackButton } from "@/hooks/useBackButton";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
+  const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -20,6 +24,14 @@ const Profile = () => {
   const [loadingPassword, setLoadingPassword] = useState(false);
   const [showEmailChange, setShowEmailChange] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
+  
+  // PIN settings
+  const [hasPinEnabled, setHasPinEnabled] = useState(false);
+  const [showPinSetup, setShowPinSetup] = useState(false);
+  const [loadingPin, setLoadingPin] = useState(true);
+
+  // Handle back button
+  useBackButton(() => navigate("/"));
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -28,7 +40,9 @@ const Profile = () => {
         navigate("/auth");
         return;
       }
+      setUserId(session.user.id);
       setUserEmail(session.user.email || null);
+      checkPinStatus(session.user.id);
     };
     
     checkAuth();
@@ -37,12 +51,56 @@ const Profile = () => {
       if (!session) {
         navigate("/auth");
       } else {
+        setUserId(session.user.id);
         setUserEmail(session.user.email || null);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const checkPinStatus = async (userId: string) => {
+    setLoadingPin(true);
+    const { data, error } = await supabase
+      .from("user_pins")
+      .select("is_enabled")
+      .eq("user_id", userId)
+      .single();
+
+    if (!error && data) {
+      setHasPinEnabled(data.is_enabled);
+    }
+    setLoadingPin(false);
+  };
+
+  const handleTogglePin = async () => {
+    if (!userId) return;
+
+    if (!hasPinEnabled) {
+      // Enable PIN - show setup modal
+      setShowPinSetup(true);
+    } else {
+      // Disable PIN
+      const { error } = await supabase
+        .from("user_pins")
+        .delete()
+        .eq("user_id", userId);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to disable PIN",
+          variant: "destructive",
+        });
+      } else {
+        setHasPinEnabled(false);
+        toast({
+          title: "PIN Disabled",
+          description: "Your PIN lock has been removed",
+        });
+      }
+    }
+  };
 
   const handleUpdateEmail = async () => {
     if (!newEmail || !newEmail.includes("@")) {
@@ -299,6 +357,42 @@ const Profile = () => {
           </CardContent>
         </Card>
 
+        {/* PIN Lock Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="text-primary" size={20} />
+              PIN Lock
+            </CardTitle>
+            <CardDescription>Protect your account with a PIN code</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Enable PIN Lock</p>
+                <p className="text-xs text-muted-foreground">
+                  Require a PIN to access the app
+                </p>
+              </div>
+              <Switch
+                checked={hasPinEnabled}
+                onCheckedChange={handleTogglePin}
+                disabled={loadingPin}
+              />
+            </div>
+            {hasPinEnabled && (
+              <Button
+                variant="secondary"
+                onClick={() => setShowPinSetup(true)}
+                className="w-full"
+              >
+                <Lock className="mr-2" size={16} />
+                Change PIN
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Logout */}
         <Card className="border-destructive/30">
           <CardHeader>
@@ -324,6 +418,18 @@ const Profile = () => {
           Note: Only 5 email accounts can access this inventory.
         </p>
       </main>
+
+      {userId && (
+        <PinSetupModal
+          open={showPinSetup}
+          onClose={() => {
+            setShowPinSetup(false);
+            if (userId) checkPinStatus(userId);
+          }}
+          userId={userId}
+          isChangingPin={hasPinEnabled}
+        />
+      )}
     </div>
   );
 };
