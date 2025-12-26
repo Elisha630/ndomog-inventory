@@ -37,9 +37,9 @@ const InstallPrompt = () => {
       }
     }
 
-    // Check APK download dismissed
+    // Check APK download dismissed (show again after 1 hour for better UX)
     const apkDismissed = localStorage.getItem("apk-download-dismissed");
-    const showApk = !apkDismissed || (Date.now() - parseInt(apkDismissed, 10) > 7 * 24 * 60 * 60 * 1000);
+    const showApk = !apkDismissed || (Date.now() - parseInt(apkDismissed, 10) > 60 * 60 * 1000);
     
     // Show APK download option after a delay
     if (showApk) {
@@ -93,7 +93,16 @@ const InstallPrompt = () => {
   };
 
   const handleApkDownload = () => {
-    window.open("/downloads/Ndomog.apk", "_blank");
+    // Create a proper download link instead of window.open
+    const link = document.createElement('a');
+    link.href = '/downloads/Ndomog.apk';
+    link.download = 'Ndomog.apk';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Hide the banner after download starts
+    setShowApkDownload(false);
   };
 
   // Don't show anything in native app
