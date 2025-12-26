@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Download, X } from "lucide-react";
+import { Download, X, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Capacitor } from "@capacitor/core";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -11,9 +12,16 @@ const InstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [showApkDownload, setShowApkDownload] = useState(false);
+
+  // Check if running in native app
+  const isNativeApp = Capacitor.isNativePlatform();
 
   useEffect(() => {
-    // Check if already installed
+    // Don't show anything in native app
+    if (isNativeApp) return;
+
+    // Check if already installed as PWA
     if (window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
       return;
@@ -27,6 +35,15 @@ const InstallPrompt = () => {
       if (Date.now() - dismissedTime < 7 * 24 * 60 * 60 * 1000) {
         return;
       }
+    }
+
+    // Check APK download dismissed
+    const apkDismissed = localStorage.getItem("apk-download-dismissed");
+    const showApk = !apkDismissed || (Date.now() - parseInt(apkDismissed, 10) > 7 * 24 * 60 * 60 * 1000);
+    
+    // Show APK download option after a delay
+    if (showApk) {
+      setTimeout(() => setShowApkDownload(true), 2000);
     }
 
     const handleBeforeInstall = (e: Event) => {
@@ -49,7 +66,7 @@ const InstallPrompt = () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, []);
+  }, [isNativeApp]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
@@ -70,36 +87,83 @@ const InstallPrompt = () => {
     localStorage.setItem("pwa-install-dismissed", Date.now().toString());
   };
 
-  if (isInstalled || !showPrompt || !deferredPrompt) return null;
+  const handleApkDismiss = () => {
+    setShowApkDownload(false);
+    localStorage.setItem("apk-download-dismissed", Date.now().toString());
+  };
+
+  const handleApkDownload = () => {
+    window.open("/downloads/Ndomog.apk", "_blank");
+  };
+
+  // Don't show anything in native app
+  if (isNativeApp) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 bg-popover border border-border rounded-lg shadow-xl p-4 animate-in slide-in-from-bottom-4">
-      <button
-        onClick={handleDismiss}
-        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
-      >
-        <X size={16} />
-      </button>
-      
-      <div className="flex items-start gap-3">
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <Download className="text-primary" size={24} />
-        </div>
-        <div className="flex-1">
-          <h3 className="font-semibold text-foreground">Install App</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Install Ndomog for quick access and offline use
-          </p>
-          <Button
-            onClick={handleInstall}
-            size="sm"
-            className="mt-3 w-full bg-primary text-primary-foreground"
+    <>
+      {/* APK Download Banner */}
+      {showApkDownload && !isInstalled && (
+        <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 bg-popover border border-border rounded-lg shadow-xl p-4 animate-in slide-in-from-bottom-4">
+          <button
+            onClick={handleApkDismiss}
+            className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
           >
-            Install Now
-          </Button>
+            <X size={16} />
+          </button>
+          
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-green-500/10 rounded-lg">
+              <Smartphone className="text-green-500" size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-foreground">Get Android App</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Download the native Android app for the best experience
+              </p>
+              <Button
+                onClick={handleApkDownload}
+                size="sm"
+                className="mt-3 w-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Download size={16} className="mr-2" />
+                Download APK
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+
+      {/* PWA Install Prompt */}
+      {!isInstalled && showPrompt && deferredPrompt && !showApkDownload && (
+        <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 bg-popover border border-border rounded-lg shadow-xl p-4 animate-in slide-in-from-bottom-4">
+          <button
+            onClick={handleDismiss}
+            className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+          >
+            <X size={16} />
+          </button>
+          
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Download className="text-primary" size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-foreground">Install App</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Install Ndomog for quick access and offline use
+              </p>
+              <Button
+                onClick={handleInstall}
+                size="sm"
+                className="mt-3 w-full bg-primary text-primary-foreground"
+              >
+                Install Now
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
