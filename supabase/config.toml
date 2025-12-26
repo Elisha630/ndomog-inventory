@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.barcode-lookup]
 verify_jwt = false
+
+[functions.send-low-stock-notifications]
+verify_jwt = false
