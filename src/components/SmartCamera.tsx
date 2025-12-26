@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Camera, Scan, X, Check } from "lucide-react";
+import { Camera, Scan, X, Check, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,8 +12,16 @@ import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { DecodeHintType, BarcodeFormat } from "@zxing/library";
 import { supabase } from "@/integrations/supabase/client";
 
+interface ProductInfo {
+  name: string;
+  category?: string;
+  details?: string;
+  imageUrl?: string;
+  brand?: string;
+}
+
 interface SmartCameraProps {
-  onBarcodeScan: (barcode: string) => void;
+  onBarcodeScan: (barcode: string, productInfo?: ProductInfo) => void;
   onPhotoCapture: (photoUrl: string) => void;
 }
 
@@ -21,6 +29,8 @@ const SmartCamera = ({ onBarcodeScan, onPhotoCapture }: SmartCameraProps) => {
   const [open, setOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
+  const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
+  const [lookingUp, setLookingUp] = useState(false);
   const [uploading, setUploading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -30,6 +40,7 @@ const SmartCamera = ({ onBarcodeScan, onPhotoCapture }: SmartCameraProps) => {
   useEffect(() => {
     if (open) {
       setScannedBarcode(null);
+      setProductInfo(null);
       startCamera();
     } else {
       stopCamera();
@@ -88,6 +99,8 @@ const SmartCamera = ({ onBarcodeScan, onPhotoCapture }: SmartCameraProps) => {
               const format = result.getBarcodeFormat();
               setScannedBarcode(barcode);
               toast.success(`Detected ${BarcodeFormat[format]}: ${barcode}`);
+              // Automatically lookup product info
+              lookupProduct(barcode);
             }
           }
         );
@@ -108,11 +121,36 @@ const SmartCamera = ({ onBarcodeScan, onPhotoCapture }: SmartCameraProps) => {
     setScanning(false);
   };
 
+  const lookupProduct = async (barcode: string) => {
+    setLookingUp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('barcode-lookup', {
+        body: { barcode },
+      });
+
+      if (error) throw error;
+
+      if (data?.found && data?.product) {
+        setProductInfo(data.product);
+        toast.success(`Found: ${data.product.name}`);
+      } else {
+        setProductInfo(null);
+        toast.info("Product not found in database");
+      }
+    } catch (error) {
+      console.error('Product lookup error:', error);
+      setProductInfo(null);
+    } finally {
+      setLookingUp(false);
+    }
+  };
+
   const handleUseBarcode = () => {
     if (scannedBarcode) {
-      onBarcodeScan(scannedBarcode);
+      onBarcodeScan(scannedBarcode, productInfo || undefined);
       setOpen(false);
       setScannedBarcode(null);
+      setProductInfo(null);
     }
   };
 
@@ -167,6 +205,7 @@ const SmartCamera = ({ onBarcodeScan, onPhotoCapture }: SmartCameraProps) => {
 
   const dismissBarcode = () => {
     setScannedBarcode(null);
+    setProductInfo(null);
   };
 
   return (
@@ -213,29 +252,79 @@ const SmartCamera = ({ onBarcodeScan, onPhotoCapture }: SmartCameraProps) => {
             </div>
 
             {scannedBarcode && (
-              <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Scan size={16} className="text-primary shrink-0" />
-                  <span className="text-sm font-mono truncate">{scannedBarcode}</span>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    onClick={dismissBarcode}
-                  >
-                    <X size={14} />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    className="h-7 w-7 bg-primary text-primary-foreground"
-                    onClick={handleUseBarcode}
-                  >
-                    <Check size={14} />
-                  </Button>
+              <div className="space-y-2">
+                <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Scan size={16} className="text-primary shrink-0" />
+                      <span className="text-sm font-mono truncate">{scannedBarcode}</span>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={dismissBarcode}
+                      >
+                        <X size={14} />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        className="h-7 w-7 bg-primary text-primary-foreground"
+                        onClick={handleUseBarcode}
+                        disabled={lookingUp}
+                      >
+                        <Check size={14} />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {lookingUp && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Looking up product...</span>
+                    </div>
+                  )}
+                  
+                  {productInfo && !lookingUp && (
+                    <div className="mt-2 pt-2 border-t border-primary/20">
+                      <div className="flex gap-3">
+                        {productInfo.imageUrl && (
+                          <img 
+                            src={productInfo.imageUrl} 
+                            alt={productInfo.name}
+                            className="w-12 h-12 object-cover rounded"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {productInfo.name}
+                          </p>
+                          {productInfo.brand && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {productInfo.brand}
+                            </p>
+                          )}
+                          {productInfo.category && (
+                            <p className="text-xs text-primary truncate">
+                              {productInfo.category}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!productInfo && !lookingUp && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Product not found - barcode will be used as item name
+                    </p>
+                  )}
                 </div>
               </div>
             )}

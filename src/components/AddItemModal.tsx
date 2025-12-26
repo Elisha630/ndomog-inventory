@@ -89,9 +89,32 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem, categories }: AddItem
     }
   };
 
-  const handleBarcodeScan = (barcode: string) => {
-    setName(barcode);
-    toast.info("Barcode scanned! You can now fill in the item details.");
+  const handleBarcodeScan = (barcode: string, productInfo?: { name: string; category?: string; details?: string; imageUrl?: string }) => {
+    if (productInfo) {
+      // Use product info from lookup
+      setName(productInfo.name);
+      if (productInfo.category) {
+        // Check if category exists in our list
+        const existingCategory = categories.find(
+          cat => cat.toLowerCase() === productInfo.category!.toLowerCase()
+        );
+        if (existingCategory) {
+          setCategory(existingCategory);
+          setIsNewCategory(false);
+        } else {
+          setIsNewCategory(true);
+          setNewCategoryName(productInfo.category);
+        }
+      }
+      if (productInfo.details) {
+        setDetails(productInfo.details);
+      }
+      toast.success(`Product found: ${productInfo.name}`);
+    } else {
+      // Just use barcode as name
+      setName(barcode);
+      toast.info("Barcode scanned! You can now fill in the item details.");
+    }
   };
 
   const handlePhotoCapture = (url: string) => {
