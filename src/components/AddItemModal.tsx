@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Package, Upload, X, Loader2, Sparkles, Camera, Plus } from "lucide-react";
+import { Package, Upload, X, Loader2, Sparkles, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Item } from "./ItemsList";
-import BarcodeScanner from "./BarcodeScanner";
+import SmartCamera from "./SmartCamera";
 import { useModalBackHandler } from "@/hooks/useBackButton";
 
 interface AddItemModalProps {
@@ -44,11 +44,7 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem, categories }: AddItem
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
   const [uploading, setUploading] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Handle back button for modal
   useModalBackHandler(open, onClose, "add-item-modal");
@@ -94,9 +90,12 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem, categories }: AddItem
   };
 
   const handleBarcodeScan = (barcode: string) => {
-    // Set the barcode as item name - user can modify as needed
     setName(barcode);
     toast.info("Barcode scanned! You can now fill in the item details.");
+  };
+
+  const handlePhotoCapture = (url: string) => {
+    setPhotoUrl(url);
   };
 
   const handleGenerateDescription = async () => {
@@ -172,75 +171,6 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem, categories }: AddItem
     }
   };
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-      setCameraStream(stream);
-      setShowCamera(true);
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      }, 100);
-    } catch (error) {
-      toast.error("Could not access camera. Please check permissions.");
-    }
-  };
-
-  const stopCamera = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach((track) => track.stop());
-      setCameraStream(null);
-    }
-    setShowCamera(false);
-  };
-
-  const capturePhoto = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.drawImage(video, 0, 0);
-    stopCamera();
-
-    canvas.toBlob(async (blob) => {
-      if (!blob) {
-        toast.error("Failed to capture photo");
-        return;
-      }
-
-      setUploading(true);
-      try {
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("item-photos")
-          .upload(fileName, blob, { contentType: "image/jpeg" });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("item-photos")
-          .getPublicUrl(fileName);
-
-        setPhotoUrl(publicUrl);
-        toast.success("Photo captured and uploaded!");
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : "Failed to upload photo";
-        toast.error(message);
-      } finally {
-        setUploading(false);
-      }
-    }, "image/jpeg", 0.9);
-  };
 
   const handleRemoveImage = async () => {
     if (photoUrl) {
@@ -381,39 +311,8 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem, categories }: AddItem
                   <X size={12} />
                 </Button>
               </div>
-            ) : showCamera ? (
-              <div className="space-y-2">
-                <div className="relative rounded-lg overflow-hidden bg-black">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-40 object-cover"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={stopCamera}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    className="flex-1 bg-primary text-primary-foreground"
-                    onClick={capturePhoto}
-                  >
-                    <Camera size={16} className="mr-1" />
-                    Capture
-                  </Button>
-                </div>
-                <canvas ref={canvasRef} className="hidden" />
-              </div>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   type="button"
                   variant="secondary"
@@ -428,17 +327,10 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem, categories }: AddItem
                   )}
                   <span className="text-xs">{uploading ? "Uploading..." : "Upload"}</span>
                 </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="flex-1 h-20 flex-col gap-2"
-                  onClick={startCamera}
-                  disabled={uploading}
-                >
-                  <Camera size={20} />
-                  <span className="text-xs">Camera</span>
-                </Button>
-                <BarcodeScanner onScan={handleBarcodeScan} />
+                <SmartCamera
+                  onBarcodeScan={handleBarcodeScan}
+                  onPhotoCapture={handlePhotoCapture}
+                />
               </div>
             )}
           </div>
