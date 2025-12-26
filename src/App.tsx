@@ -12,6 +12,10 @@ import NotFound from "./pages/NotFound";
 import OfflineIndicator from "./components/OfflineIndicator";
 import InstallPrompt from "./components/InstallPrompt";
 import PinLockScreen from "./components/PinLockScreen";
+import { initTextSize } from "./hooks/useTextSize";
+
+// Initialize text size on app load
+initTextSize();
 
 const queryClient = new QueryClient();
 

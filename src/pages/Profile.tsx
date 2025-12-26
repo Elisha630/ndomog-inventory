@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye, Type } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +14,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import PinSetupModal from "@/components/PinSetupModal";
 import PhotoViewerModal from "@/components/PhotoViewerModal";
 import { useBackButton } from "@/hooks/useBackButton";
 import { biometricService, BiometryType } from "@/services/biometricService";
+import { useTextSize, TextSize } from "@/hooks/useTextSize";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -52,6 +54,11 @@ const Profile = () => {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometryType, setBiometryType] = useState<BiometryType>(BiometryType.NONE);
+
+  // Text size accessibility
+  const { textSize, setTextSize, textSizeLabels } = useTextSize();
+  const textSizeOptions: TextSize[] = ["small", "normal", "large", "extra-large"];
+  const textSizeIndex = textSizeOptions.indexOf(textSize);
 
   // Handle back button
   useBackButton(() => navigate("/"));
@@ -727,6 +734,39 @@ const Profile = () => {
                 )}
               </>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Accessibility Settings */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Type className="text-primary" size={18} />
+              Accessibility
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-foreground">Text Size</p>
+                <span className="text-sm text-muted-foreground">{textSizeLabels[textSize]}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">A</span>
+                <Slider
+                  value={[textSizeIndex]}
+                  min={0}
+                  max={3}
+                  step={1}
+                  onValueChange={(value) => setTextSize(textSizeOptions[value[0]])}
+                  className="flex-1"
+                />
+                <span className="text-lg font-medium text-muted-foreground">A</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Adjust text size for better readability
+              </p>
+            </div>
           </CardContent>
         </Card>
 
