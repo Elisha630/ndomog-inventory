@@ -11,6 +11,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import OfflineIndicator from "./components/OfflineIndicator";
 import InstallPrompt from "./components/InstallPrompt";
+import UpdateNotification from "./components/UpdateNotification";
 import PinLockScreen from "./components/PinLockScreen";
 import { initTextSize } from "./hooks/useTextSize";
 import { initTheme } from "./hooks/useTheme";
@@ -109,6 +110,7 @@ const App = () => (
       <Sonner />
       <OfflineIndicator />
       <InstallPrompt />
+      <UpdateNotification />
       <AppContent />
     </TooltipProvider>
   </QueryClientProvider>
