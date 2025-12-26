@@ -1,6 +1,7 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 
 type CloseHandler = () => boolean;
 
@@ -16,7 +17,6 @@ export const registerCloseHandler = (id: string, handler: CloseHandler) => {
 let capacitorListenerRegistered = false;
 
 export const useBackButton = (onBack?: () => void) => {
-  const hasHandledRef = useRef(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -40,21 +40,19 @@ export const useBackButton = (onBack?: () => void) => {
       return true;
     }
     
-    // Check if we can go back in browser history
-    if (window.history.length > 1) {
-      window.history.back();
-      return true;
-    }
-    
     return false;
   }, [onBack, location.pathname, navigate]);
 
   useEffect(() => {
-    // Register Capacitor back button handler only once
+    // Only register Capacitor back button handler on native platforms
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
     if (!capacitorListenerRegistered) {
       capacitorListenerRegistered = true;
       
-      App.addListener("backButton", ({ canGoBack }) => {
+      App.addListener("backButton", () => {
         // Try to close any open modal first
         for (const [, handler] of closeHandlers) {
           if (handler()) {
@@ -62,11 +60,8 @@ export const useBackButton = (onBack?: () => void) => {
           }
         }
         
-        // Check if we can navigate back
-        if (canGoBack) {
-          window.history.back();
-        } else if (window.location.pathname !== "/") {
-          // Navigate to home if not already there
+        // If not on home page, navigate to home
+        if (window.location.pathname !== "/") {
           window.location.href = "/";
         } else {
           // Exit the app if on home page with no modals open
@@ -75,33 +70,6 @@ export const useBackButton = (onBack?: () => void) => {
       });
     }
   }, []);
-
-  // Also handle web browser popstate for PWA/web
-  useEffect(() => {
-    const pushState = () => {
-      window.history.pushState({ backHandler: true }, "");
-    };
-
-    const handlePopState = (event: PopStateEvent) => {
-      if (hasHandledRef.current) {
-        hasHandledRef.current = false;
-        return;
-      }
-
-      const handled = handleBack();
-      if (handled) {
-        hasHandledRef.current = true;
-        pushState();
-      }
-    };
-
-    pushState();
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [handleBack]);
 
   return { handleBack };
 };
@@ -120,3 +88,4 @@ export const useModalBackHandler = (isOpen: boolean, onClose: () => void, id: st
     }
   }, [isOpen, onClose, id]);
 };
+
