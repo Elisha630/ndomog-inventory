@@ -13,9 +13,11 @@ import OfflineIndicator from "./components/OfflineIndicator";
 import InstallPrompt from "./components/InstallPrompt";
 import PinLockScreen from "./components/PinLockScreen";
 import { initTextSize } from "./hooks/useTextSize";
+import { initTheme } from "./hooks/useTheme";
 
-// Initialize text size on app load
+// Initialize settings on app load
 initTextSize();
+initTheme();
 
 const queryClient = new QueryClient();
 

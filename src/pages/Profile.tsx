@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye, Type } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye, Type, Sun, Moon, Contrast } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import PhotoViewerModal from "@/components/PhotoViewerModal";
 import { useBackButton } from "@/hooks/useBackButton";
 import { biometricService, BiometryType } from "@/services/biometricService";
 import { useTextSize, TextSize } from "@/hooks/useTextSize";
+import { useTheme } from "@/hooks/useTheme";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -59,6 +60,9 @@ const Profile = () => {
   const { textSize, setTextSize, textSizeLabels } = useTextSize();
   const textSizeOptions: TextSize[] = ["small", "normal", "large", "extra-large"];
   const textSizeIndex = textSizeOptions.indexOf(textSize);
+
+  // Theme settings
+  const { themeMode, toggleThemeMode, highContrast, toggleHighContrast } = useTheme();
 
   // Handle back button
   useBackButton(() => navigate("/"));
@@ -746,7 +750,46 @@ const Profile = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
+            {/* Theme Mode Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {themeMode === "dark" ? (
+                  <Moon size={16} className="text-primary" />
+                ) : (
+                  <Sun size={16} className="text-primary" />
+                )}
+                <div>
+                  <p className="text-sm font-medium text-foreground">Dark Mode</p>
+                  <p className="text-xs text-muted-foreground">
+                    {themeMode === "dark" ? "Currently using dark theme" : "Currently using light theme"}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={themeMode === "dark"}
+                onCheckedChange={toggleThemeMode}
+              />
+            </div>
+
+            {/* High Contrast Toggle */}
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="flex items-center gap-2">
+                <Contrast size={16} className="text-primary" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">High Contrast</p>
+                  <p className="text-xs text-muted-foreground">
+                    Increase color contrast for visibility
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={highContrast}
+                onCheckedChange={toggleHighContrast}
+              />
+            </div>
+
+            {/* Text Size Slider */}
+            <div className="space-y-3 pt-2 border-t border-border">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-foreground">Text Size</p>
                 <span className="text-sm text-muted-foreground">{textSizeLabels[textSize]}</span>
