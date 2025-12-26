@@ -26,39 +26,14 @@ export const useBackButton = (onBack?: () => void) => {
   const navigate = useNavigate();
   const onBackRef = useRef(onBack);
   
-  // Keep ref updated
+  // Keep ref updated - do this synchronously, not in useEffect
   onBackRef.current = onBack;
 
-  // Update global state for Capacitor listener
+  // Update global state for Capacitor listener - combine into single effect
   useEffect(() => {
     globalNavigate = navigate;
     currentPathname = location.pathname;
-  }, [navigate, location.pathname]);
-
-  const handleBack = useCallback(() => {
-    // Try to close any open modal first
-    for (const [, handler] of closeHandlers) {
-      if (handler()) {
-        return true; // Modal was closed
-      }
-    }
     
-    // No modal was open, execute custom back action
-    if (onBackRef.current) {
-      onBackRef.current();
-      return true;
-    }
-    
-    // If not on home page, navigate to home
-    if (location.pathname !== "/") {
-      navigate("/");
-      return true;
-    }
-    
-    return false;
-  }, [location.pathname, navigate]);
-
-  useEffect(() => {
     // Only register Capacitor back button handler on native platforms
     if (!Capacitor.isNativePlatform()) {
       return;
@@ -84,7 +59,30 @@ export const useBackButton = (onBack?: () => void) => {
         }
       });
     }
-  }, []);
+  }, [navigate, location.pathname]);
+
+  const handleBack = useCallback(() => {
+    // Try to close any open modal first
+    for (const [, handler] of closeHandlers) {
+      if (handler()) {
+        return true; // Modal was closed
+      }
+    }
+    
+    // No modal was open, execute custom back action
+    if (onBackRef.current) {
+      onBackRef.current();
+      return true;
+    }
+    
+    // If not on home page, navigate to home
+    if (location.pathname !== "/") {
+      navigate("/");
+      return true;
+    }
+    
+    return false;
+  }, [location.pathname, navigate]);
 
   return { handleBack };
 };
