@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye, Type, Sun, Moon, Contrast } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye, Type, Sun, Moon, Contrast, RefreshCw, FolderOpen, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import { useBackButton } from "@/hooks/useBackButton";
 import { biometricService, BiometryType } from "@/services/biometricService";
 import { useTextSize, TextSize } from "@/hooks/useTextSize";
 import { useTheme } from "@/hooks/useTheme";
+import { useUpdateCheck } from "@/hooks/useUpdateCheck";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -64,6 +65,17 @@ const Profile = () => {
 
   // Theme settings
   const { themeMode, toggleThemeMode, highContrast, toggleHighContrast } = useTheme();
+
+  // Update check
+  const { 
+    updateAvailable, 
+    latestVersion, 
+    currentVersion, 
+    releaseNotes, 
+    downloadUrl, 
+    isLoading: checkingUpdate, 
+    checkForUpdates 
+  } = useUpdateCheck();
 
   // Handle back button
   useBackButton(() => navigate("/"));
@@ -811,6 +823,75 @@ const Profile = () => {
                 Adjust text size for better readability
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* App Management */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FolderOpen className="text-primary" size={18} />
+              App Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Category Management Link */}
+            <Button
+              variant="secondary"
+              onClick={() => navigate("/categories")}
+              className="w-full justify-start"
+            >
+              <FolderOpen className="mr-2" size={16} />
+              Manage Categories
+            </Button>
+
+            {/* Check for Updates */}
+            <div className="pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  checkForUpdates();
+                  toast({
+                    title: checkingUpdate ? "Checking..." : "Update Check",
+                    description: checkingUpdate 
+                      ? "Checking for updates..." 
+                      : updateAvailable 
+                        ? `New version ${latestVersion} available!` 
+                        : "You're on the latest version",
+                  });
+                }}
+                className="w-full justify-start"
+                disabled={checkingUpdate}
+              >
+                <RefreshCw className={`mr-2 ${checkingUpdate ? "animate-spin" : ""}`} size={16} />
+                Check for Updates
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Current version: {currentVersion}
+                {updateAvailable && latestVersion && (
+                  <span className="text-primary ml-2">→ {latestVersion} available</span>
+                )}
+              </p>
+            </div>
+
+            {/* Download Link if update available */}
+            {updateAvailable && downloadUrl && (
+              <Button
+                variant="default"
+                onClick={() => {
+                  const link = document.createElement("a");
+                  link.href = downloadUrl;
+                  link.download = "Ndomog.apk";
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="w-full"
+              >
+                <Download className="mr-2" size={16} />
+                Download Update
+              </Button>
+            )}
           </CardContent>
         </Card>
 

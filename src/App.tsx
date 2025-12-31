@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
+import Categories from "./pages/Categories";
 import NotFound from "./pages/NotFound";
 import OfflineIndicator from "./components/OfflineIndicator";
 import InstallPrompt from "./components/InstallPrompt";
@@ -97,6 +98,7 @@ const AppContent = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/categories" element={<Categories />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
