@@ -29,9 +29,11 @@ interface AddItemModalProps {
   onSubmit: (item: Omit<Item, "id" | "created_by" | "created_at" | "updated_at">) => void;
   editItem?: Item | null;
   categories: string[];
+  existingItems: Item[];
+  onEditExisting?: (item: Item) => void;
 }
 
-const AddItemModal = ({ open, onClose, onSubmit, editItem, categories }: AddItemModalProps) => {
+const AddItemModal = ({ open, onClose, onSubmit, editItem, categories, existingItems, onEditExisting }: AddItemModalProps) => {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [isNewCategory, setIsNewCategory] = useState(false);
@@ -207,11 +209,50 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem, categories }: AddItem
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalCategory = isNewCategory ? newCategoryName : category;
-    if (!finalCategory.trim()) {
+    
+    // Get the category name and convert to uppercase
+    let finalCategory = (isNewCategory ? newCategoryName : category).trim().toUpperCase();
+    
+    if (!finalCategory) {
       toast.error("Please select or enter a category");
       return;
     }
+    
+    // Check if a similar category already exists (case-insensitive match)
+    // If so, use the existing one to prevent duplicates
+    const existingCategory = categories.find(
+      cat => cat.toUpperCase() === finalCategory
+    );
+    if (existingCategory) {
+      finalCategory = existingCategory.toUpperCase(); // Ensure it's uppercase
+    }
+    
+    // Check for duplicate item name (only when adding new items, not editing)
+    if (!editItem) {
+      const existingItem = existingItems.find(
+        item => item.name.toLowerCase().trim() === name.toLowerCase().trim()
+      );
+      
+      if (existingItem) {
+        toast.error(
+          `An item named "${existingItem.name}" already exists. Would you like to edit it instead?`,
+          {
+            action: {
+              label: "Edit Item",
+              onClick: () => {
+                if (onEditExisting) {
+                  onEditExisting(existingItem);
+                }
+                onClose();
+              },
+            },
+            duration: 10000,
+          }
+        );
+        return;
+      }
+    }
+    
     onSubmit({
       name,
       category: finalCategory,

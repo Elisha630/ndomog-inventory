@@ -48,14 +48,8 @@ export const useUpdateCheck = (): UpdateCheckResult => {
   const [isDismissed, setIsDismissed] = useState(false);
 
   const currentVersion = getAppVersion();
-  const isNativeApp = Capacitor.isNativePlatform();
 
   const checkForUpdates = useCallback(async () => {
-    // Only check for updates in native app
-    if (!isNativeApp) {
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
@@ -89,7 +83,7 @@ export const useUpdateCheck = (): UpdateCheckResult => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentVersion, isNativeApp]);
+  }, [currentVersion]);
 
   const dismissUpdate = useCallback(() => {
     if (latestVersion) {
@@ -100,8 +94,6 @@ export const useUpdateCheck = (): UpdateCheckResult => {
 
   // Check for updates on mount and periodically
   useEffect(() => {
-    if (!isNativeApp) return;
-
     // Initial check after short delay
     const initialTimeout = setTimeout(() => {
       checkForUpdates();
@@ -116,7 +108,7 @@ export const useUpdateCheck = (): UpdateCheckResult => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [checkForUpdates, isNativeApp]);
+  }, [checkForUpdates]);
 
   return {
     updateAvailable,

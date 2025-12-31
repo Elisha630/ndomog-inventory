@@ -408,16 +408,19 @@ const Dashboard = () => {
   const handleRenameCategory = async (oldName: string, newName: string) => {
     if (!newName.trim() || oldName === newName) return;
     
+    // Convert to uppercase
+    const normalizedNewName = newName.trim().toUpperCase();
+    
     // Update all items with the old category name
     const { error } = await supabase
       .from("items")
-      .update({ category: newName.trim() })
+      .update({ category: normalizedNewName })
       .eq("category", oldName);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Success", description: `Category renamed from "${oldName}" to "${newName}"` });
+      toast({ title: "Success", description: `Category renamed from "${oldName}" to "${normalizedNewName}"` });
       fetchItems();
     }
   };
@@ -498,6 +501,10 @@ const Dashboard = () => {
         onSubmit={handleAddOrEditItem}
         editItem={editItem}
         categories={categories}
+        existingItems={items}
+        onEditExisting={(item) => {
+          setEditItem(item);
+        }}
       />
 
       <UsernamePrompt
