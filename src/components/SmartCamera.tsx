@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Camera, Scan, X, Check, Loader2, Search } from "lucide-react";
+import { Camera, Scan, X, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,12 @@ import { toast } from "sonner";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { DecodeHintType, BarcodeFormat } from "@zxing/library";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  isNativePlatform,
+  capturePhotoNative,
+  dataUrlToBlob,
+  requestCameraPermission,
+} from "@/services/cameraService";
 
 interface ProductInfo {
   name: string;
@@ -53,6 +59,18 @@ const SmartCamera = ({ onBarcodeScan, onPhotoCapture }: SmartCameraProps) => {
 
   const startCamera = async () => {
     setScanning(true);
+    
+    // On native platforms, request permission first
+    if (isNativePlatform()) {
+      const hasPermission = await requestCameraPermission();
+      if (!hasPermission) {
+        toast.error("Camera permission is required to scan barcodes");
+        setOpen(false);
+        setScanning(false);
+        return;
+      }
+    }
+    
     try {
       const hints = new Map();
       hints.set(DecodeHintType.POSSIBLE_FORMATS, [
@@ -155,52 +173,86 @@ const SmartCamera = ({ onBarcodeScan, onPhotoCapture }: SmartCameraProps) => {
   };
 
   const capturePhoto = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.drawImage(video, 0, 0);
-
-    canvas.toBlob(
-      async (blob) => {
+    setUploading(true);
+    
+    try {
+      let blob: Blob;
+      
+      // Try native camera first on native platforms
+      if (isNativePlatform()) {
+        const dataUrl = await capturePhotoNative();
+        if (dataUrl) {
+          blob = dataUrlToBlob(dataUrl);
+        } else {
+          // Fall back to web camera capture
+          blob = await captureFromWebCamera();
+          if (!blob) {
+            toast.error("Failed to capture photo");
+            setUploading(false);
+            return;
+          }
+        }
+      } else {
+        // Web platform - use canvas capture
+        blob = await captureFromWebCamera();
         if (!blob) {
           toast.error("Failed to capture photo");
+          setUploading(false);
           return;
         }
+      }
+      
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
 
-        setUploading(true);
-        try {
-          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("item-photos")
+        .upload(fileName, blob, { contentType: "image/jpeg" });
 
-          const { error: uploadError } = await supabase.storage
-            .from("item-photos")
-            .upload(fileName, blob, { contentType: "image/jpeg" });
+      if (uploadError) throw uploadError;
 
-          if (uploadError) throw uploadError;
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("item-photos").getPublicUrl(fileName);
 
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("item-photos").getPublicUrl(fileName);
+      onPhotoCapture(publicUrl);
+      toast.success("Photo captured!");
+      setOpen(false);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to upload photo";
+      toast.error(message);
+    } finally {
+      setUploading(false);
+    }
+  };
+  
+  const captureFromWebCamera = (): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      if (!videoRef.current || !canvasRef.current) {
+        resolve(null);
+        return;
+      }
 
-          onPhotoCapture(publicUrl);
-          toast.success("Photo captured!");
-          setOpen(false);
-        } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : "Failed to upload photo";
-          toast.error(message);
-        } finally {
-          setUploading(false);
-        }
-      },
-      "image/jpeg",
-      0.9
-    );
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(null);
+        return;
+      }
+
+      ctx.drawImage(video, 0, 0);
+
+      canvas.toBlob(
+        (blob) => {
+          resolve(blob);
+        },
+        "image/jpeg",
+        0.9
+      );
+    });
   };
 
   const dismissBarcode = () => {

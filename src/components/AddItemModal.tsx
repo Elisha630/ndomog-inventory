@@ -256,12 +256,16 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem, categories, existingI
     onSubmit({
       name,
       category: finalCategory,
+      category_id: null, // Will be linked server-side when categories are normalized
       details: details || null,
       photo_url: photoUrl || null,
       buying_price: buyingPrice,
       selling_price: sellingPrice,
       quantity,
       low_stock_threshold: lowStockThreshold,
+      is_deleted: false,
+      deleted_at: null,
+      deleted_by: null,
     });
     resetForm();
   };

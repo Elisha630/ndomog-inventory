@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useBackButton } from "@/hooks/useBackButton";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import Header from "@/components/Header";
 import StatsCards from "@/components/StatsCards";
 import SearchBar from "@/components/SearchBar";
@@ -10,8 +11,15 @@ import ItemsList, { type Item } from "@/components/ItemsList";
 import ActivityLogPanel, { type ActivityLog } from "@/components/ActivityLogPanel";
 import AddItemModal from "@/components/AddItemModal";
 import UsernamePrompt from "@/components/UsernamePrompt";
-
+import OfflineBanner from "@/components/OfflineBanner";
 import RestockSuggestions from "@/components/RestockSuggestions";
+import {
+  loadItems,
+  loadProfiles,
+  syncPendingActions,
+  fetchAndCacheItems,
+} from "@/services/syncService";
+import { getPendingActions } from "@/lib/offlineDb";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,8 +54,13 @@ const Dashboard = () => {
   const [userProfiles, setUserProfiles] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [pendingActionsCount, setPendingActionsCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isOnline } = useOnlineStatus();
   
   // Use back button hook to handle phone back button
   useBackButton();
@@ -97,18 +110,52 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Check pending actions count
+  const updatePendingActionsCount = useCallback(async () => {
+    const actions = await getPendingActions();
+    setPendingActionsCount(actions.length);
+  }, []);
+
+  // Handle sync
+  const handleSync = useCallback(async () => {
+    if (!isOnline) return;
+    
+    setIsSyncing(true);
+    try {
+      const result = await syncPendingActions();
+      if (result.success) {
+        toast({ title: "Synced", description: `${result.actionsSynced} actions synced successfully` });
+        await fetchItems();
+        await updatePendingActionsCount();
+      } else if (result.errors.length > 0) {
+        toast({ title: "Sync Error", description: result.errors[0], variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Sync error:", error);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [isOnline, toast]);
+
   useEffect(() => {
     if (!loading) {
       fetchItems();
       fetchActivityLogs();
       fetchUserProfiles();
-      subscribeToChanges();
+      updatePendingActionsCount();
+      
+      // Only subscribe to realtime if online
+      if (isOnline) {
+        subscribeToChanges();
+      }
 
       // Listen for online event to sync data
-      const handleOnline = () => {
-        fetchItems();
-        fetchActivityLogs();
-        fetchUserProfiles();
+      const handleOnline = async () => {
+        toast({ title: "Back online", description: "Syncing your changes..." });
+        await handleSync();
+        await fetchItems();
+        await fetchActivityLogs();
+        await fetchUserProfiles();
       };
 
       window.addEventListener("app-online", handleOnline);
@@ -116,7 +163,7 @@ const Dashboard = () => {
         window.removeEventListener("app-online", handleOnline);
       };
     }
-  }, [loading]);
+  }, [loading, isOnline, handleSync, updatePendingActionsCount]);
 
   const fetchUserProfiles = async () => {
     const { data, error } = await supabase
@@ -141,15 +188,25 @@ const Dashboard = () => {
   };
 
   const fetchItems = async () => {
-    const { data, error } = await supabase
-      .from("items")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      setItems(data || []);
+    try {
+      const { items: fetchedItems, fromCache } = await loadItems(isOnline);
+      // Map to include required fields with defaults for backward compatibility
+      const mappedItems: Item[] = fetchedItems.map((item) => ({
+        ...item,
+        category_id: item.category_id || null,
+        is_deleted: item.is_deleted || false,
+        deleted_at: null,
+        deleted_by: null,
+      }));
+      setItems(mappedItems);
+      setIsFromCache(fromCache);
+      
+      if (fromCache && !isOnline) {
+        console.log("Loaded items from offline cache");
+      }
+    } catch (error) {
+      console.error("Error fetching items:", error);
+      toast({ title: "Error", description: "Failed to load items", variant: "destructive" });
     }
   };
 
@@ -390,9 +447,16 @@ const Dashboard = () => {
   const handleDeleteItem = async () => {
     if (!deleteItem) return;
 
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Soft delete instead of hard delete
     const { error } = await supabase
       .from("items")
-      .delete()
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id || null,
+      })
       .eq("id", deleteItem.id);
 
     if (error) {
@@ -400,6 +464,8 @@ const Dashboard = () => {
     } else {
       await logActivity("removed", deleteItem.name, "Deleted from inventory");
       toast({ title: "Success", description: "Item deleted successfully" });
+      // Refresh items to remove from list
+      fetchItems();
     }
 
     setDeleteItem(null);
@@ -463,6 +529,13 @@ const Dashboard = () => {
       />
 
       <main className="container max-w-7xl mx-auto p-4 space-y-6">
+        <OfflineBanner
+          isFromCache={isFromCache}
+          pendingActionsCount={pendingActionsCount}
+          onSync={handleSync}
+          isSyncing={isSyncing}
+        />
+        
         {showActivity && <ActivityLogPanel logs={activityLogs} userProfiles={userProfiles} />}
 
         <StatsCards {...stats} />

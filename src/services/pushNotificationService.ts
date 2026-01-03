@@ -10,12 +10,22 @@ export const initializePushNotifications = async () => {
   }
 
   try {
-    // Request permission
-    const permissionStatus = await PushNotifications.requestPermissions();
+    // Check current permission status first
+    const currentStatus = await PushNotifications.checkPermissions();
+    console.log("Current push notification permission status:", currentStatus);
     
-    if (permissionStatus.receive !== "granted") {
-      console.log("Push notification permission denied");
-      return false;
+    let permissionGranted = currentStatus.receive === "granted";
+    
+    // If not granted, request permission (required for Android 13+ / API 33+)
+    if (!permissionGranted) {
+      const permissionStatus = await PushNotifications.requestPermissions();
+      console.log("Push notification permission request result:", permissionStatus);
+      
+      if (permissionStatus.receive !== "granted") {
+        console.log("Push notification permission denied");
+        return false;
+      }
+      permissionGranted = true;
     }
 
     // Register for push notifications
@@ -34,12 +44,19 @@ export const initializePushNotifications = async () => {
 
     // Listen for incoming notifications when app is in foreground
     PushNotifications.addListener("pushNotificationReceived", (notification: PushNotificationSchema) => {
-      console.log("Push notification received:", notification);
+      console.log("Push notification received in foreground:", notification);
+      // The notification will still appear in the system tray
     });
 
     // Listen for notification actions (when user taps notification)
     PushNotifications.addListener("pushNotificationActionPerformed", (action: ActionPerformed) => {
       console.log("Push notification action performed:", action);
+      // Handle deep linking based on notification data
+      const data = action.notification.data;
+      if (data?.type === "LOW_STOCK" && data?.items) {
+        // Navigate to low stock items or show alert
+        console.log("Low stock notification tapped, items:", data.items);
+      }
     });
 
     return true;

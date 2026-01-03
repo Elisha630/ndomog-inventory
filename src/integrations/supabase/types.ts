@@ -20,7 +20,9 @@ export type Database = {
           created_at: string
           details: string | null
           id: string
+          item_id: string | null
           item_name: string
+          snapshot_data: Json | null
           user_email: string
           user_id: string | null
         }
@@ -29,7 +31,9 @@ export type Database = {
           created_at?: string
           details?: string | null
           id?: string
+          item_id?: string | null
           item_name: string
+          snapshot_data?: Json | null
           user_email: string
           user_id?: string | null
         }
@@ -38,11 +42,20 @@ export type Database = {
           created_at?: string
           details?: string | null
           id?: string
+          item_id?: string | null
           item_name?: string
+          snapshot_data?: Json | null
           user_email?: string
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "activity_logs_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "activity_logs_user_id_fkey"
             columns: ["user_id"]
@@ -51,6 +64,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      categories: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       device_tokens: {
         Row: {
@@ -79,14 +113,62 @@ export type Database = {
         }
         Relationships: []
       }
+      item_movements: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          item_id: string
+          new_quantity: number
+          notes: string | null
+          previous_quantity: number
+          reason: Database["public"]["Enums"]["movement_reason"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          item_id: string
+          new_quantity: number
+          notes?: string | null
+          previous_quantity: number
+          reason: Database["public"]["Enums"]["movement_reason"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          item_id?: string
+          new_quantity?: number
+          notes?: string | null
+          previous_quantity?: number
+          reason?: Database["public"]["Enums"]["movement_reason"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       items: {
         Row: {
           buying_price: number
           category: string
+          category_id: string | null
           created_at: string
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           details: string | null
           id: string
+          is_deleted: boolean
           low_stock_threshold: number
           name: string
           photo_url: string | null
@@ -97,10 +179,14 @@ export type Database = {
         Insert: {
           buying_price?: number
           category: string
+          category_id?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           details?: string | null
           id?: string
+          is_deleted?: boolean
           low_stock_threshold?: number
           name: string
           photo_url?: string | null
@@ -111,10 +197,14 @@ export type Database = {
         Update: {
           buying_price?: number
           category?: string
+          category_id?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           details?: string | null
           id?: string
+          is_deleted?: boolean
           low_stock_threshold?: number
           name?: string
           photo_url?: string | null
@@ -123,6 +213,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "items_created_by_fkey"
             columns: ["created_by"]
@@ -138,9 +235,11 @@ export type Database = {
           action_user_email: string
           created_at: string
           details: string | null
+          entity_id: string | null
           id: string
           is_read: boolean
           item_name: string
+          type: Database["public"]["Enums"]["notification_type"] | null
           user_id: string | null
         }
         Insert: {
@@ -148,9 +247,11 @@ export type Database = {
           action_user_email: string
           created_at?: string
           details?: string | null
+          entity_id?: string | null
           id?: string
           is_read?: boolean
           item_name: string
+          type?: Database["public"]["Enums"]["notification_type"] | null
           user_id?: string | null
         }
         Update: {
@@ -158,9 +259,11 @@ export type Database = {
           action_user_email?: string
           created_at?: string
           details?: string | null
+          entity_id?: string | null
           id?: string
           is_read?: boolean
           item_name?: string
+          type?: Database["public"]["Enums"]["notification_type"] | null
           user_id?: string | null
         }
         Relationships: [
@@ -227,15 +330,58 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       cleanup_old_activity_logs: { Args: never; Returns: undefined }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "staff" | "viewer"
+      movement_reason:
+        | "sale"
+        | "restock"
+        | "adjustment"
+        | "initial"
+        | "return"
+        | "damage"
+        | "transfer"
+      notification_type:
+        | "LOW_STOCK"
+        | "ITEM_UPDATED"
+        | "ITEM_DELETED"
+        | "ITEM_ADDED"
+        | "QUANTITY_CHANGED"
+        | "ITEM_RESTORED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -362,6 +508,25 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "staff", "viewer"],
+      movement_reason: [
+        "sale",
+        "restock",
+        "adjustment",
+        "initial",
+        "return",
+        "damage",
+        "transfer",
+      ],
+      notification_type: [
+        "LOW_STOCK",
+        "ITEM_UPDATED",
+        "ITEM_DELETED",
+        "ITEM_ADDED",
+        "QUANTITY_CHANGED",
+        "ITEM_RESTORED",
+      ],
+    },
   },
 } as const

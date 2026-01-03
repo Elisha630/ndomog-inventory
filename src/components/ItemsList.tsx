@@ -24,12 +24,16 @@ export interface Item {
   id: string;
   name: string;
   category: string;
+  category_id: string | null;
   details: string | null;
   photo_url: string | null;
   buying_price: number;
   selling_price: number;
   quantity: number;
   low_stock_threshold: number;
+  is_deleted: boolean;
+  deleted_at: string | null;
+  deleted_by: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
