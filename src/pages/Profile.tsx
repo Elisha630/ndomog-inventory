@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye, Type, Sun, Moon, Contrast, RefreshCw, FolderOpen, Download } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye, Type, Sun, Moon, Contrast, RefreshCw, FolderOpen, Download, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -872,6 +872,15 @@ const Profile = () => {
                   <span className="text-primary ml-2">→ {latestVersion} available</span>
                 )}
               </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/versions")}
+                className="w-full justify-start mt-2 text-muted-foreground"
+              >
+                <History className="mr-2" size={14} />
+                View All Versions
+              </Button>
             </div>
 
             {/* Download Link if update available */}
