@@ -16,7 +16,7 @@ import UpdateNotification from "./components/UpdateNotification";
 import PinLockScreen from "./components/PinLockScreen";
 import { initTextSize } from "./hooks/useTextSize";
 import { initTheme } from "./hooks/useTheme";
-import { initializePushNotifications } from "./services/pushNotificationService";
+import { getPushNotificationsEnabled, initializePushNotifications } from "./services/pushNotificationService";
 
 // Initialize settings on app load
 initTextSize();
@@ -58,8 +58,13 @@ const AppContent = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
         setUserId(session.user.id);
-        // Initialize push notifications on sign in
-        initializePushNotifications();
+        // Initialize push notifications on sign in (only if enabled)
+        if (getPushNotificationsEnabled()) {
+          // Small delay to avoid conflicts during auth navigation / permission prompts
+          setTimeout(() => {
+            void initializePushNotifications();
+          }, 750);
+        }
         // Check PIN on sign in
         supabase
           .from("user_pins")

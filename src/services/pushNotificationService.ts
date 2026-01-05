@@ -1,6 +1,29 @@
 import { Capacitor } from "@capacitor/core";
-import { PushNotifications, Token, PushNotificationSchema, ActionPerformed } from "@capacitor/push-notifications";
+import {
+  PushNotifications,
+  Token,
+  PushNotificationSchema,
+  ActionPerformed,
+} from "@capacitor/push-notifications";
 import { supabase } from "@/integrations/supabase/client";
+
+const PUSH_ENABLED_KEY = "ndomog_push_enabled";
+
+export const getPushNotificationsEnabled = (): boolean => {
+  try {
+    return localStorage.getItem(PUSH_ENABLED_KEY) === "true";
+  } catch {
+    return false;
+  }
+};
+
+export const setPushNotificationsEnabled = (enabled: boolean) => {
+  try {
+    localStorage.setItem(PUSH_ENABLED_KEY, enabled ? "true" : "false");
+  } catch {
+    // ignore
+  }
+};
 
 let pushInitInFlight: Promise<boolean> | null = null;
 let pushInitialized = false;
@@ -9,6 +32,12 @@ export const initializePushNotifications = async (): Promise<boolean> => {
   // Only initialize on native platforms
   if (!Capacitor.isNativePlatform()) {
     console.log("Push notifications not available on web");
+    return false;
+  }
+
+  // App-level setting (prevents unwanted init/crash loops on misconfigured builds)
+  if (!getPushNotificationsEnabled()) {
+    console.log("Push notifications disabled in settings");
     return false;
   }
 
@@ -79,8 +108,10 @@ export const initializePushNotifications = async (): Promise<boolean> => {
 
 const saveDeviceToken = async (token: string) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
       console.log("No user logged in, cannot save device token");
       return;
@@ -118,20 +149,21 @@ export const removeDeviceToken = async () => {
   }
 
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
       return;
     }
 
     // Remove all device tokens for this user
-    await supabase
-      .from("device_tokens")
-      .delete()
-      .eq("user_id", user.id);
+    await supabase.from("device_tokens").delete().eq("user_id", user.id);
 
-    // Unregister from push notifications
+    // Remove listeners + reset init so the user can re-enable later
     await PushNotifications.removeAllListeners();
+    pushInitialized = false;
+    pushInitInFlight = null;
   } catch (error) {
     console.error("Error removing device token:", error);
   }
