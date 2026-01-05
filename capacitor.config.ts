@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.ndomog.app',
+  appId: 'com.ndomog.inventory',
   appName: 'ndomog',
   webDir: 'dist',
   plugins: {

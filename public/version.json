@@ -1,7 +1,7 @@
 {
   "version": "1.1.0",
-  "releaseDate": "2026-01-03",
-  "releaseNotes": "• Offline storage with automatic sync when back online\n• Camera fixes for better photo capture\n• Database improvements including category normalization\n• Performance and stability enhancements",
+  "releaseDate": "2026-01-05",
+  "releaseNotes": "• Push notification stability fixes\n• Improved app launch reliability\n• Offline storage with automatic sync\n• Camera fixes for better photo capture\n• Performance and stability enhancements",
   "downloadUrl": "/downloads/Ndomog.apk",
   "minVersion": "1.0.0"
 }
