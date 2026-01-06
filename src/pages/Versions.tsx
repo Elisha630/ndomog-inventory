@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, Calendar, Smartphone, ExternalLink } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,12 +50,22 @@ const Versions = () => {
     fetchVersions();
   }, []);
 
-  const handleDownload = (downloadUrl: string, version: string) => {
-    const fullUrl = window.location.origin + downloadUrl;
+  const handleDownload = async (downloadUrl: string, version: string) => {
+    // Use production URL for native app downloads
+    const baseUrl = isNative 
+      ? "https://ndomog.lovable.app" 
+      : window.location.origin;
+    const fullUrl = baseUrl + downloadUrl;
     
     if (isNative) {
-      // On native, open in external browser
-      window.open(fullUrl, "_system");
+      // On native, open in external browser using Capacitor Browser plugin
+      try {
+        await Browser.open({ url: fullUrl });
+      } catch (err) {
+        console.error("Failed to open browser:", err);
+        // Fallback to window.open
+        window.open(fullUrl, "_blank");
+      }
     } else {
       // On web, trigger download
       const link = document.createElement("a");
