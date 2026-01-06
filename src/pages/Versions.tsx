@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, Calendar, Smartphone, ExternalLink } from "lucide-react";
+import { ArrowLeft, Download, Calendar, Smartphone, ExternalLink, HardDrive } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBackButton } from "@/hooks/useBackButton";
 import { getAppVersion } from "@/lib/version";
+import { 
+  fetchAllReleases, 
+  isGitHubReleasesConfigured, 
+  formatFileSize,
+  type VersionInfo 
+} from "@/lib/githubReleases";
 
-interface VersionInfo {
+interface LocalVersionInfo {
   version: string;
   releaseDate: string;
   releaseNotes: string;
@@ -19,7 +25,7 @@ interface VersionInfo {
 }
 
 interface VersionsData {
-  versions: VersionInfo[];
+  versions: LocalVersionInfo[];
 }
 
 const Versions = () => {
@@ -35,6 +41,17 @@ const Versions = () => {
   useEffect(() => {
     const fetchVersions = async () => {
       try {
+        // Try GitHub Releases first if configured
+        if (isGitHubReleasesConfigured()) {
+          const releases = await fetchAllReleases();
+          if (releases.length > 0) {
+            setVersions(releases);
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // Fallback to local versions.json
         const response = await fetch("/versions.json?" + Date.now());
         if (!response.ok) throw new Error("Failed to fetch versions");
         const data: VersionsData = await response.json();
@@ -51,11 +68,19 @@ const Versions = () => {
   }, []);
 
   const handleDownload = async (downloadUrl: string, version: string) => {
-    // Use production URL for native app downloads
-    const baseUrl = isNative 
-      ? "https://ndomog.lovable.app" 
-      : window.location.origin;
-    const fullUrl = baseUrl + downloadUrl;
+    // Check if it's a full URL (GitHub) or relative path (local)
+    const isFullUrl = downloadUrl.startsWith("http");
+    
+    let fullUrl: string;
+    if (isFullUrl) {
+      fullUrl = downloadUrl;
+    } else {
+      // Use production URL for native app downloads
+      const baseUrl = isNative 
+        ? "https://ndomog.lovable.app" 
+        : window.location.origin;
+      fullUrl = baseUrl + downloadUrl;
+    }
     
     if (isNative) {
       // On native, open in external browser using Capacitor Browser plugin
@@ -67,13 +92,8 @@ const Versions = () => {
         window.open(fullUrl, "_blank");
       }
     } else {
-      // On web, trigger download
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `Ndomog-${version}.apk`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // On web, open the download URL
+      window.open(fullUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -144,7 +164,7 @@ const Versions = () => {
                       )}
                     </div>
                   </div>
-                  <CardDescription className="flex items-center gap-4 text-xs">
+                  <CardDescription className="flex flex-wrap items-center gap-4 text-xs">
                     <span className="flex items-center gap-1">
                       <Calendar size={12} />
                       {formatDate(ver.releaseDate)}
@@ -153,6 +173,12 @@ const Versions = () => {
                       <span className="flex items-center gap-1">
                         <Smartphone size={12} />
                         Android {ver.minAndroidVersion}+
+                      </span>
+                    )}
+                    {ver.fileSize && (
+                      <span className="flex items-center gap-1">
+                        <HardDrive size={12} />
+                        {formatFileSize(ver.fileSize)}
                       </span>
                     )}
                   </CardDescription>
