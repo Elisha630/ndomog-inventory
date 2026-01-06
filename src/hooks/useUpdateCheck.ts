@@ -1,8 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Capacitor } from "@capacitor/core";
 import { getAppVersion } from "@/lib/version";
+import { 
+  fetchLatestRelease, 
+  isGitHubReleasesConfigured,
+  type VersionInfo 
+} from "@/lib/githubReleases";
 
-interface VersionInfo {
+interface LocalVersionInfo {
   version: string;
   releaseDate: string;
   releaseNotes: string;
@@ -54,29 +59,48 @@ export const useUpdateCheck = (): UpdateCheckResult => {
     setError(null);
 
     try {
-      // Add cache-busting query param to avoid cached version.json
-      const baseUrl = Capacitor.isNativePlatform()
-        ? "https://ndomog.lovable.app"
-        : "";
+      let version: string;
+      let notes: string;
+      let url: string;
 
-      const response = await fetch(`${baseUrl}/version.json?t=${Date.now()}`);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch version info");
+      // Try GitHub Releases first if configured
+      if (isGitHubReleasesConfigured()) {
+        const githubRelease = await fetchLatestRelease();
+        if (githubRelease) {
+          version = githubRelease.version;
+          notes = githubRelease.releaseNotes;
+          url = githubRelease.downloadUrl;
+        } else {
+          throw new Error("Failed to fetch from GitHub Releases");
+        }
+      } else {
+        // Fallback to local version.json
+        const baseUrl = Capacitor.isNativePlatform()
+          ? "https://ndomog.lovable.app"
+          : "";
+
+        const response = await fetch(`${baseUrl}/version.json?t=${Date.now()}`);
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch version info");
+        }
+
+        const versionInfo: LocalVersionInfo = await response.json();
+        version = versionInfo.version;
+        notes = versionInfo.releaseNotes;
+        url = versionInfo.downloadUrl;
       }
-
-      const versionInfo: VersionInfo = await response.json();
       
-      setLatestVersion(versionInfo.version);
-      setReleaseNotes(versionInfo.releaseNotes);
-      setDownloadUrl(versionInfo.downloadUrl);
+      setLatestVersion(version);
+      setReleaseNotes(notes);
+      setDownloadUrl(url);
 
-      const comparison = compareVersions(currentVersion, versionInfo.version);
+      const comparison = compareVersions(currentVersion, version);
       setUpdateAvailable(comparison > 0);
 
       // Check if this version was already dismissed
       const dismissedVersion = localStorage.getItem("dismissed-update-version");
-      if (dismissedVersion === versionInfo.version) {
+      if (dismissedVersion === version) {
         setIsDismissed(true);
       } else {
         setIsDismissed(false);
