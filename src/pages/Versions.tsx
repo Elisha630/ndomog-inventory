@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, Calendar, Smartphone, ExternalLink, HardDrive } from "lucide-react";
+import { ArrowLeft, Download, Calendar, Smartphone, ExternalLink } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import { Button } from "@/components/ui/button";
@@ -9,19 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBackButton } from "@/hooks/useBackButton";
 import { getAppVersion } from "@/lib/version";
-import { 
-  fetchAllReleases, 
-  isGitHubReleasesConfigured, 
-  formatFileSize,
-  type VersionInfo 
-} from "@/lib/githubReleases";
-import {
-  getAllCloudReleases,
-  isCloudStorageConfigured,
-  toDirectDownloadLink,
-} from "@/lib/cloudStorageReleases";
 
-interface LocalVersionInfo {
+interface VersionInfo {
   version: string;
   releaseDate: string;
   releaseNotes: string;
@@ -30,7 +19,7 @@ interface LocalVersionInfo {
 }
 
 interface VersionsData {
-  versions: LocalVersionInfo[];
+  versions: VersionInfo[];
 }
 
 const Versions = () => {
@@ -46,34 +35,6 @@ const Versions = () => {
   useEffect(() => {
     const fetchVersions = async () => {
       try {
-        // Try GitHub Releases first if configured
-        if (isGitHubReleasesConfigured()) {
-          const releases = await fetchAllReleases();
-          if (releases.length > 0) {
-            setVersions(releases);
-            setLoading(false);
-            return;
-          }
-        }
-        
-        // Try Cloud Storage (Google Drive / Dropbox) if configured
-        if (isCloudStorageConfigured()) {
-          const cloudReleases = getAllCloudReleases();
-          const mappedReleases: VersionInfo[] = cloudReleases.map(r => ({
-            version: r.version,
-            releaseDate: r.releaseDate,
-            releaseNotes: r.releaseNotes,
-            downloadUrl: toDirectDownloadLink(r.downloadUrl),
-            minAndroidVersion: r.minAndroidVersion,
-          }));
-          if (mappedReleases.length > 0) {
-            setVersions(mappedReleases);
-            setLoading(false);
-            return;
-          }
-        }
-        
-        // Fallback to local versions.json
         const response = await fetch("/versions.json?" + Date.now());
         if (!response.ok) throw new Error("Failed to fetch versions");
         const data: VersionsData = await response.json();
@@ -90,19 +51,11 @@ const Versions = () => {
   }, []);
 
   const handleDownload = async (downloadUrl: string, version: string) => {
-    // Check if it's a full URL (GitHub) or relative path (local)
-    const isFullUrl = downloadUrl.startsWith("http");
-    
-    let fullUrl: string;
-    if (isFullUrl) {
-      fullUrl = downloadUrl;
-    } else {
-      // Use production URL for native app downloads
-      const baseUrl = isNative 
-        ? "https://ndomog.lovable.app" 
-        : window.location.origin;
-      fullUrl = baseUrl + downloadUrl;
-    }
+    // Use production URL for native app downloads
+    const baseUrl = isNative 
+      ? "https://ndomog.lovable.app" 
+      : window.location.origin;
+    const fullUrl = baseUrl + downloadUrl;
     
     if (isNative) {
       // On native, open in external browser using Capacitor Browser plugin
@@ -195,12 +148,6 @@ const Versions = () => {
                       <span className="flex items-center gap-1">
                         <Smartphone size={12} />
                         Android {ver.minAndroidVersion}+
-                      </span>
-                    )}
-                    {ver.fileSize && (
-                      <span className="flex items-center gap-1">
-                        <HardDrive size={12} />
-                        {formatFileSize(ver.fileSize)}
                       </span>
                     )}
                   </CardDescription>

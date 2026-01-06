@@ -1,18 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Capacitor } from "@capacitor/core";
 import { getAppVersion } from "@/lib/version";
-import { 
-  fetchLatestRelease, 
-  isGitHubReleasesConfigured,
-  type VersionInfo 
-} from "@/lib/githubReleases";
-import {
-  getLatestCloudRelease,
-  isCloudStorageConfigured,
-  toDirectDownloadLink,
-} from "@/lib/cloudStorageReleases";
 
-interface LocalVersionInfo {
+interface VersionInfo {
   version: string;
   releaseDate: string;
   releaseNotes: string;
@@ -64,60 +54,28 @@ export const useUpdateCheck = (): UpdateCheckResult => {
     setError(null);
 
     try {
-      let version: string;
-      let notes: string;
-      let url: string;
+      const baseUrl = Capacitor.isNativePlatform()
+        ? "https://ndomog.lovable.app"
+        : "";
 
-      // Try GitHub Releases first if configured
-      if (isGitHubReleasesConfigured()) {
-        const githubRelease = await fetchLatestRelease();
-        if (githubRelease) {
-          version = githubRelease.version;
-          notes = githubRelease.releaseNotes;
-          url = githubRelease.downloadUrl;
-        } else {
-          throw new Error("Failed to fetch from GitHub Releases");
-        }
-      } 
-      // Try Cloud Storage (Google Drive / Dropbox) if configured
-      else if (isCloudStorageConfigured()) {
-        const cloudRelease = getLatestCloudRelease();
-        if (cloudRelease) {
-          version = cloudRelease.version;
-          notes = cloudRelease.releaseNotes;
-          url = toDirectDownloadLink(cloudRelease.downloadUrl);
-        } else {
-          throw new Error("No cloud storage releases configured");
-        }
-      } 
-      // Fallback to local version.json
-      else {
-        const baseUrl = Capacitor.isNativePlatform()
-          ? "https://ndomog.lovable.app"
-          : "";
-
-        const response = await fetch(`${baseUrl}/version.json?t=${Date.now()}`);
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch version info");
-        }
-
-        const versionInfo: LocalVersionInfo = await response.json();
-        version = versionInfo.version;
-        notes = versionInfo.releaseNotes;
-        url = versionInfo.downloadUrl;
-      }
+      const response = await fetch(`${baseUrl}/version.json?t=${Date.now()}`);
       
-      setLatestVersion(version);
-      setReleaseNotes(notes);
-      setDownloadUrl(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch version info");
+      }
 
-      const comparison = compareVersions(currentVersion, version);
+      const versionInfo: VersionInfo = await response.json();
+      
+      setLatestVersion(versionInfo.version);
+      setReleaseNotes(versionInfo.releaseNotes);
+      setDownloadUrl(versionInfo.downloadUrl);
+
+      const comparison = compareVersions(currentVersion, versionInfo.version);
       setUpdateAvailable(comparison > 0);
 
       // Check if this version was already dismissed
       const dismissedVersion = localStorage.getItem("dismissed-update-version");
-      if (dismissedVersion === version) {
+      if (dismissedVersion === versionInfo.version) {
         setIsDismissed(true);
       } else {
         setIsDismissed(false);
