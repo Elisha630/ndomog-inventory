@@ -1,4 +1,6 @@
 import { Download, X, RefreshCw } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import { Button } from "@/components/ui/button";
 import { useUpdateCheck } from "@/hooks/useUpdateCheck";
 
@@ -15,9 +17,17 @@ const UpdateNotification = () => {
     checkForUpdates,
   } = useUpdateCheck();
 
-  const handleDownload = () => {
-    if (downloadUrl) {
-      window.open(downloadUrl, "_blank");
+  const handleDownload = async () => {
+    if (!downloadUrl) return;
+
+    const isNative = Capacitor.isNativePlatform();
+    const baseUrl = isNative ? "https://ndomog.lovable.app" : window.location.origin;
+    const fullUrl = baseUrl + downloadUrl;
+
+    if (isNative) {
+      await Browser.open({ url: fullUrl });
+    } else {
+      window.open(fullUrl, "_blank", "noopener,noreferrer");
     }
   };
 

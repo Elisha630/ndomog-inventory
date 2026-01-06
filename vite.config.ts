@@ -4,13 +4,29 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
-// Read package.json for version
-import packageJson from "./package.json";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const versionJsonPath = fileURLToPath(
+  new URL("./public/version.json", import.meta.url)
+);
+
+const getBuildVersion = (): string => {
+  try {
+    const raw = readFileSync(versionJsonPath, "utf-8");
+    const parsed = JSON.parse(raw) as { version?: string };
+    return parsed.version || "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+};
+
+const BUILD_VERSION = getBuildVersion();
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   define: {
-    APP_VERSION: JSON.stringify(packageJson.version),
+    APP_VERSION: JSON.stringify(BUILD_VERSION),
   },
   server: {
     host: "::",

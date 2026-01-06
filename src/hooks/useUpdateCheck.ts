@@ -55,7 +55,11 @@ export const useUpdateCheck = (): UpdateCheckResult => {
 
     try {
       // Add cache-busting query param to avoid cached version.json
-      const response = await fetch(`/version.json?t=${Date.now()}`);
+      const baseUrl = Capacitor.isNativePlatform()
+        ? "https://ndomog.lovable.app"
+        : "";
+
+      const response = await fetch(`${baseUrl}/version.json?t=${Date.now()}`);
       
       if (!response.ok) {
         throw new Error("Failed to fetch version info");
