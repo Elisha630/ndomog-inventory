@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBackButton } from "@/hooks/useBackButton";
 import { getAppVersion } from "@/lib/version";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VersionInfo {
   version: string;
@@ -16,10 +17,6 @@ interface VersionInfo {
   releaseNotes: string;
   downloadUrl: string;
   minAndroidVersion?: string;
-}
-
-interface VersionsData {
-  versions: VersionInfo[];
 }
 
 const Versions = () => {
@@ -35,10 +32,33 @@ const Versions = () => {
   useEffect(() => {
     const fetchVersions = async () => {
       try {
-        const response = await fetch("/versions.json?" + Date.now());
-        if (!response.ok) throw new Error("Failed to fetch versions");
-        const data: VersionsData = await response.json();
-        setVersions(data.versions);
+        // Fetch from database (published releases only)
+        const { data, error: dbError } = await supabase
+          .from("app_releases")
+          .select("version, release_date, release_notes, download_url, min_android_version")
+          .eq("is_published", true)
+          .order("release_date", { ascending: false });
+
+        if (dbError) throw dbError;
+
+        if (data && data.length > 0) {
+          setVersions(
+            data.map((r) => ({
+              version: r.version,
+              releaseDate: r.release_date,
+              releaseNotes: r.release_notes,
+              downloadUrl: r.download_url,
+              minAndroidVersion: r.min_android_version || undefined,
+            }))
+          );
+        } else {
+          // Fallback to static file if no releases in database
+          const response = await fetch("/versions.json?" + Date.now());
+          if (response.ok) {
+            const fileData = await response.json();
+            setVersions(fileData.versions || []);
+          }
+        }
       } catch (err) {
         console.error("Error fetching versions:", err);
         setError("Failed to load version history");
