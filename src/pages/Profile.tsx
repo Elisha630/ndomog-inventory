@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye, Type, Sun, Moon, Contrast, RefreshCw, FolderOpen, Download, History } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye, Type, Sun, Moon, Contrast, RefreshCw, FolderOpen, Download, History, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,6 +77,9 @@ const Profile = () => {
     checkForUpdates 
   } = useUpdateCheck();
 
+  // Admin check
+  const [isAdmin, setIsAdmin] = useState(false);
+
   // Handle back button
   useBackButton(() => navigate("/"));
 
@@ -92,6 +95,7 @@ const Profile = () => {
       checkPinStatus(session.user.id);
       checkBiometricAvailability();
       fetchProfile(session.user.id);
+      checkAdminStatus(session.user.id);
     };
     
     checkAuth();
@@ -120,6 +124,17 @@ const Profile = () => {
       if (data.username) setUsername(data.username);
       if (data.avatar_url) setAvatarUrl(data.avatar_url);
     }
+  };
+
+  const checkAdminStatus = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    setIsAdmin(!error && !!data);
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -571,6 +586,29 @@ const Profile = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Admin Section - Only visible to admins */}
+        {isAdmin && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Settings className="text-primary" size={18} />
+                Admin Tools
+              </CardTitle>
+              <CardDescription>Manage app settings and releases</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="secondary"
+                className="w-full justify-start"
+                onClick={() => navigate("/admin/releases")}
+              >
+                <Download className="mr-2" size={16} />
+                Manage App Releases
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Account Security - Email & Password combined */}
         <Card>
