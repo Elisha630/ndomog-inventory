@@ -65,6 +65,48 @@ export type Database = {
           },
         ]
       }
+      app_releases: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          download_url: string
+          file_size_bytes: number | null
+          id: string
+          is_published: boolean
+          min_android_version: string | null
+          release_date: string
+          release_notes: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          download_url: string
+          file_size_bytes?: number | null
+          id?: string
+          is_published?: boolean
+          min_android_version?: string | null
+          release_date?: string
+          release_notes: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          download_url?: string
+          file_size_bytes?: number | null
+          id?: string
+          is_published?: boolean
+          min_android_version?: string | null
+          release_date?: string
+          release_notes?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
