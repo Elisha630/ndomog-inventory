@@ -1,14 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Capacitor } from "@capacitor/core";
 import { getAppVersion } from "@/lib/version";
-
-interface VersionInfo {
-  version: string;
-  releaseDate: string;
-  releaseNotes: string;
-  downloadUrl: string;
-  minVersion: string;
-}
+import { supabase } from "@/integrations/supabase/client";
 
 interface UpdateCheckResult {
   updateAvailable: boolean;
@@ -54,31 +46,34 @@ export const useUpdateCheck = (): UpdateCheckResult => {
     setError(null);
 
     try {
-      const baseUrl = Capacitor.isNativePlatform()
-        ? "https://ndomog.lovable.app"
-        : "";
+      // Fetch latest published release from database
+      const { data, error: dbError } = await supabase
+        .from("app_releases")
+        .select("version, release_notes, download_url")
+        .eq("is_published", true)
+        .order("release_date", { ascending: false })
+        .limit(1)
+        .single();
 
-      const response = await fetch(`${baseUrl}/version.json?t=${Date.now()}`);
-      
-      if (!response.ok) {
+      if (dbError) {
         throw new Error("Failed to fetch version info");
       }
 
-      const versionInfo: VersionInfo = await response.json();
-      
-      setLatestVersion(versionInfo.version);
-      setReleaseNotes(versionInfo.releaseNotes);
-      setDownloadUrl(versionInfo.downloadUrl);
+      if (data) {
+        setLatestVersion(data.version);
+        setReleaseNotes(data.release_notes);
+        setDownloadUrl(data.download_url);
 
-      const comparison = compareVersions(currentVersion, versionInfo.version);
-      setUpdateAvailable(comparison > 0);
+        const comparison = compareVersions(currentVersion, data.version);
+        setUpdateAvailable(comparison > 0);
 
-      // Check if this version was already dismissed
-      const dismissedVersion = localStorage.getItem("dismissed-update-version");
-      if (dismissedVersion === versionInfo.version) {
-        setIsDismissed(true);
-      } else {
-        setIsDismissed(false);
+        // Check if this version was already dismissed
+        const dismissedVersion = localStorage.getItem("dismissed-update-version");
+        if (dismissedVersion === data.version) {
+          setIsDismissed(true);
+        } else {
+          setIsDismissed(false);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
