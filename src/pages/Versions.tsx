@@ -71,11 +71,13 @@ const Versions = () => {
   }, []);
 
   const handleDownload = async (downloadUrl: string, version: string) => {
-    // Use production URL for native app downloads
-    const baseUrl = isNative 
-      ? "https://ndomog.lovable.app" 
-      : window.location.origin;
-    const fullUrl = baseUrl + downloadUrl;
+    // Check if downloadUrl is already a full URL (from cloud storage)
+    const isFullUrl = downloadUrl.startsWith("http://") || downloadUrl.startsWith("https://");
+    
+    // If it's a relative path, prepend the base URL
+    const fullUrl = isFullUrl 
+      ? downloadUrl 
+      : (isNative ? "https://ndomog.lovable.app" : window.location.origin) + downloadUrl;
     
     if (isNative) {
       // On native, open in external browser using Capacitor Browser plugin
