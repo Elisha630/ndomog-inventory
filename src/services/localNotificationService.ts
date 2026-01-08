@@ -35,9 +35,10 @@ export const initializeLocalNotifications = async (): Promise<boolean> => {
         description: "Inventory notifications",
         importance: 4, // HIGH
         visibility: 1, // PUBLIC
-        sound: "default",
+        sound: "notification", // References res/raw/notification.wav
         vibration: true,
         lights: true,
+        lightColor: "#FF9800", // Orange accent color
       };
       
       await LocalNotifications.createChannel(channel);
@@ -85,7 +86,7 @@ export const showLocalNotification = async (
           title: title,
           body: body,
           channelId: CHANNEL_ID,
-          sound: "default",
+          sound: "notification", // References res/raw/notification.wav
           smallIcon: "ic_stat_icon_config_sample",
           largeIcon: "ic_launcher",
           extra: data,
