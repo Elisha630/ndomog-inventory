@@ -447,7 +447,8 @@ const Profile = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    // Use local scope to only sign out this device, not all devices
+    await supabase.auth.signOut({ scope: 'local' });
     navigate("/auth");
   };
 

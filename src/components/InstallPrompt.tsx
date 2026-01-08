@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Download, X, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Capacitor } from "@capacitor/core";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -13,9 +14,30 @@ const InstallPrompt = () => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [showApkDownload, setShowApkDownload] = useState(false);
-
+  const [latestDownloadUrl, setLatestDownloadUrl] = useState<string | null>(null);
+  const [latestVersion, setLatestVersion] = useState<string | null>(null);
   // Check if running in native app
   const isNativeApp = Capacitor.isNativePlatform();
+
+  // Fetch the latest release URL from database
+  useEffect(() => {
+    const fetchLatestRelease = async () => {
+      const { data, error } = await supabase
+        .from("app_releases")
+        .select("download_url, version")
+        .eq("is_published", true)
+        .order("release_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        setLatestDownloadUrl(data.download_url);
+        setLatestVersion(data.version);
+      }
+    };
+
+    fetchLatestRelease();
+  }, []);
 
   useEffect(() => {
     // Don't show anything in native app
@@ -87,10 +109,14 @@ const InstallPrompt = () => {
   };
 
   const handleApkDownload = () => {
-    // Create a proper download link instead of window.open
+    // Use the latest download URL from database, fallback to static file
+    const downloadUrl = latestDownloadUrl || '/downloads/Ndomog.apk';
+    const fileName = latestVersion ? `Ndomog-${latestVersion}.apk` : 'Ndomog.apk';
+    
+    // Create a proper download link
     const link = document.createElement('a');
-    link.href = '/downloads/Ndomog.apk';
-    link.download = 'Ndomog.apk';
+    link.href = downloadUrl;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

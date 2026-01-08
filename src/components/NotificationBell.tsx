@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { showLocalNotification, initializeLocalNotifications } from "@/services/localNotificationService";
 
 interface Notification {
   id: string;
@@ -43,6 +44,9 @@ const NotificationBell = () => {
     // Initialize audio element
     audioRef.current = new Audio(NOTIFICATION_SOUND);
     audioRef.current.volume = 0.5;
+
+    // Initialize local notifications for native platform
+    initializeLocalNotifications();
 
     fetchProfiles();
     fetchNotifications();
@@ -128,6 +132,16 @@ const NotificationBell = () => {
             setNotifications((prev) => [newNotification, ...prev].slice(0, 20));
             setUnreadCount((prev) => prev + 1);
             playNotificationSound();
+            
+            // Show native local notification on Android/iOS
+            const displayName = getDisplayName(newNotification.action_user_email);
+            const title = `${displayName} ${newNotification.action} ${newNotification.item_name}`;
+            const body = newNotification.details || `Item ${newNotification.action}`;
+            
+            showLocalNotification(title, body, {
+              type: "notification",
+              notificationId: newNotification.id,
+            });
           }
         }
       )
