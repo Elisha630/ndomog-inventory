@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getAppVersion } from "@/lib/version";
 import { supabase } from "@/integrations/supabase/client";
+import { Capacitor } from "@capacitor/core";
 
 interface UpdateCheckResult {
   updateAvailable: boolean;
@@ -64,14 +65,23 @@ export const useUpdateCheck = (): UpdateCheckResult => {
         setReleaseNotes(data.release_notes);
         setDownloadUrl(data.download_url);
 
-        const comparison = compareVersions(currentVersion, data.version);
-        setUpdateAvailable(comparison > 0);
+        // Only show update available on native platforms
+        // Web version is always the latest deployed version
+        const isNative = Capacitor.isNativePlatform();
+        if (isNative) {
+          const comparison = compareVersions(currentVersion, data.version);
+          setUpdateAvailable(comparison > 0);
 
-        // Check if this version was already dismissed
-        const dismissedVersion = localStorage.getItem("dismissed-update-version");
-        if (dismissedVersion === data.version) {
-          setIsDismissed(true);
+          // Check if this version was already dismissed
+          const dismissedVersion = localStorage.getItem("dismissed-update-version");
+          if (dismissedVersion === data.version) {
+            setIsDismissed(true);
+          } else {
+            setIsDismissed(false);
+          }
         } else {
+          // Web version - never show update prompt
+          setUpdateAvailable(false);
           setIsDismissed(false);
         }
       }
