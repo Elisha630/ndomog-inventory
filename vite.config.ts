@@ -4,25 +4,9 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-
-// Read version from package.json
-const packageJsonPath = fileURLToPath(
-  new URL("./package.json", import.meta.url)
-);
-
-const getBuildVersion = (): string => {
-  try {
-    const raw = readFileSync(packageJsonPath, "utf-8");
-    const parsed = JSON.parse(raw) as { version?: string };
-    return parsed.version || "0.0.0";
-  } catch {
-    return "0.0.0";
-  }
-};
-
-const BUILD_VERSION = getBuildVersion();
+// App version - update this when releasing new versions
+// Ask the AI to update this value when you release a new version
+const BUILD_VERSION = "1.2.1";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
