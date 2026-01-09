@@ -5,6 +5,9 @@ const config: CapacitorConfig = {
   appName: 'ndomog',
   webDir: 'dist',
   plugins: {
+    LocalNotifications: {
+      smallIcon: "ic_stat_notification",
+    },
     Camera: {
       permissionRequestText: "Ndomog needs camera access to scan barcodes and capture item photos"
     },

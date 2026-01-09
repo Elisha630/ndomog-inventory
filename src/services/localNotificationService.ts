@@ -1,101 +1,61 @@
-import { Capacitor } from "@capacitor/core";
-import { LocalNotifications, Channel } from "@capacitor/local-notifications";
+import { LocalNotifications, Channel, Schedule } from '@capacitor/local-notifications';
 
-const CHANNEL_ID = "ndomog_notifications";
+const CHANNEL_ID = 'ndomog_alerts_v2'; // Changed ID to force Android to refresh settings
+const CHANNEL_NAME = 'Inventory Alerts';
 
-let initialized = false;
+let isInitialized = false;
 
 export const initializeLocalNotifications = async (): Promise<boolean> => {
-  if (!Capacitor.isNativePlatform()) {
-    return false;
-  }
-
-  if (initialized) return true;
+  if (isInitialized) return true;
 
   try {
-    // Request permissions
-    const permStatus = await LocalNotifications.checkPermissions();
-    
-    if (permStatus.display === "prompt") {
-      const reqResult = await LocalNotifications.requestPermissions();
-      if (reqResult.display !== "granted") {
-        console.log("Local notification permissions not granted");
-        return false;
-      }
-    } else if (permStatus.display !== "granted") {
-      console.log("Local notification permissions denied");
-      return false;
-    }
+    const permStatus = await LocalNotifications.requestPermissions();
+    if (permStatus.display !== 'granted') return false;
 
-    // Create notification channel for Android
-    if (Capacitor.getPlatform() === "android") {
-      const channel: Channel = {
-        id: CHANNEL_ID,
-        name: "Ndomog Notifications",
-        description: "Inventory notifications",
-        importance: 4, // HIGH
-        visibility: 1, // PUBLIC
-        sound: "notification", // References res/raw/notification.wav
-        vibration: true,
-        lights: true,
-        lightColor: "#FF9800", // Orange accent color
-      };
-      
-      await LocalNotifications.createChannel(channel);
-    }
+    // Delete old channel if it exists (optional but cleaner)
+    try { await LocalNotifications.deleteChannel({ id: 'ndomog_notifications' }); } catch (e) {}
 
-    // Listen for notification actions
-    LocalNotifications.addListener("localNotificationActionPerformed", (notification) => {
-      console.log("Local notification action performed:", notification);
-    });
+    const channel: Channel = {
+      id: CHANNEL_ID,
+      name: CHANNEL_NAME,
+      description: 'Critical inventory and activity alerts',
+      importance: 5, // Max Importance = Status Bar + Sound
+      sound: 'default',
+      visibility: 1,
+      vibration: true,
+    };
+    await LocalNotifications.createChannel(channel);
 
-    initialized = true;
+    isInitialized = true;
     return true;
   } catch (error) {
-    console.error("Error initializing local notifications:", error);
+    console.error('Error initializing local notifications:', error);
     return false;
   }
 };
 
-export const showLocalNotification = async (
-  title: string,
-  body: string,
-  data?: Record<string, unknown>
-): Promise<void> => {
-  if (!Capacitor.isNativePlatform()) {
-    console.log("Local notifications not available on web");
-    return;
+export const showLocalNotification = async (title: string, body: string, extra?: any): Promise<void> => {
+  if (!isInitialized) {
+    const success = await initializeLocalNotifications();
+    if (!success) return;
   }
 
   try {
-    // Initialize if not already done
-    if (!initialized) {
-      const success = await initializeLocalNotifications();
-      if (!success) {
-        console.log("Could not initialize local notifications");
-        return;
-      }
-    }
-
-    const notificationId = Math.floor(Math.random() * 2147483647);
-
     await LocalNotifications.schedule({
       notifications: [
         {
-          id: notificationId,
-          title: title,
-          body: body,
+          title,
+          body,
+          id: Math.floor(Math.random() * 1000000), // Random ID to prevent overwriting
           channelId: CHANNEL_ID,
-          sound: "notification", // References res/raw/notification.wav
-          smallIcon: "ic_stat_icon_config_sample",
-          largeIcon: "ic_launcher",
-          extra: data,
+          extra,
+          // Added these to ensure visibility
+          schedule: { at: new Date(Date.now() + 100) }, // Schedule for "now"
         },
       ],
     });
-
-    console.log("Local notification scheduled:", { title, body });
+    console.log('Native notification scheduled:', title);
   } catch (error) {
-    console.error("Error showing local notification:", error);
+    console.error('Error showing native notification:', error);
   }
 };

@@ -19,6 +19,7 @@ import PinLockScreen from "./components/PinLockScreen";
 import { initTextSize } from "./hooks/useTextSize";
 import { initTheme } from "./hooks/useTheme";
 import { getPushNotificationsEnabled, initializePushNotifications } from "./services/pushNotificationService";
+import { initializeLocalNotifications } from "./services/localNotificationService";
 
 // Initialize settings on app load
 initTextSize();
@@ -114,17 +115,34 @@ const AppContent = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <OfflineIndicator />
-      <InstallPrompt />
-      <UpdateNotification />
-      <AppContent />
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  useEffect(() => {
+    // This function will run once when the app component is first mounted.
+    const setupNotifications = async () => {
+      console.log("Initializing local notifications...");
+      const success = await initializeLocalNotifications();
+      if (success) {
+        console.log("Local notifications initialized successfully.");
+      } else {
+        console.warn("Could not initialize local notifications. They may not work as expected.");
+      }
+    };
+
+    void setupNotifications();
+  }, []); // The empty dependency array [] ensures this runs only once.
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <OfflineIndicator />
+        <InstallPrompt />
+        <UpdateNotification />
+        <AppContent />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

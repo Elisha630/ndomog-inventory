@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ndomog</string>
+    <string name="title_activity_main">ndomog</string>
+    <string name="package_name">com.ndomog.inventory</string>
+    <string name="custom_url_scheme">com.ndomog.inventory</string>
+</resources>
