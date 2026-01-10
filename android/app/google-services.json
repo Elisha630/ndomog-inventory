@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "991427615872",
+    "project_id": "ndomog-a0165",
+    "storage_bucket": "ndomog-a0165.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:991427615872:android:8f2f43aa484ba861a21a65",
+        "android_client_info": {
+          "package_name": "com.ndomog.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfZtf3zKPSfbTmImwtKCvAFfZAxpmh6XI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
