@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Package, Plus, Minus, Trash2, Edit, AlertTriangle, CheckSquare, Square, Layers, ChevronDown, ChevronUp } from "lucide-react";
+import { Package, Plus, Minus, Trash2, Edit, AlertTriangle, CheckSquare, Square, Layers, ChevronDown, ChevronUp, ChevronUpIcon, ChevronDownIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -51,6 +52,7 @@ interface ItemsListProps {
 const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onBulkUpdateQuantity, onDeleteItem }: ItemsListProps) => {
   const [viewingPhoto, setViewingPhoto] = useState<{ url: string; name: string } | null>(null);
   const [quantityChange, setQuantityChange] = useState<{ item: Item; change: number } | null>(null);
+  const [pendingChangeAmount, setPendingChangeAmount] = useState(1);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
@@ -60,13 +62,35 @@ const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onBulkUpdat
   const isOutOfStock = (item: Item) => item.quantity === 0;
 
   const handleQuantityChangeRequest = (item: Item, change: number) => {
+    setPendingChangeAmount(1);
     setQuantityChange({ item, change });
   };
 
   const confirmQuantityChange = () => {
     if (quantityChange) {
-      onUpdateQuantity(quantityChange.item, quantityChange.change);
+      const actualChange = quantityChange.change > 0 ? pendingChangeAmount : -pendingChangeAmount;
+      onUpdateQuantity(quantityChange.item, actualChange);
       setQuantityChange(null);
+      setPendingChangeAmount(1);
+    }
+  };
+
+  const incrementPendingAmount = () => {
+    if (quantityChange) {
+      const maxIncrease = quantityChange.change < 0 ? quantityChange.item.quantity : 9999;
+      setPendingChangeAmount(prev => Math.min(prev + 1, maxIncrease));
+    }
+  };
+
+  const decrementPendingAmount = () => {
+    setPendingChangeAmount(prev => Math.max(prev - 1, 1));
+  };
+
+  const handlePendingAmountChange = (value: string) => {
+    const num = parseInt(value) || 1;
+    if (quantityChange) {
+      const maxIncrease = quantityChange.change < 0 ? quantityChange.item.quantity : 9999;
+      setPendingChangeAmount(Math.min(Math.max(num, 1), maxIncrease));
     }
   };
 
@@ -356,34 +380,63 @@ const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onBulkUpdat
         />
       )}
 
-      <AlertDialog open={!!quantityChange} onOpenChange={() => setQuantityChange(null)}>
+      <AlertDialog open={!!quantityChange} onOpenChange={() => { setQuantityChange(null); setPendingChangeAmount(1); }}>
         <AlertDialogContent className="bg-popover border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>
               {quantityChange?.change && quantityChange.change > 0 ? "Add to Stock" : "Remove from Stock"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {quantityChange?.change && quantityChange.change > 0 ? (
-                <>
-                  Add 1 unit to <span className="font-semibold text-foreground">{quantityChange?.item.name}</span>?
-                  <br />
-                  <span className="text-muted-foreground">
-                    Current: {quantityChange?.item.quantity} → New: {quantityChange?.item.quantity + 1}
-                  </span>
-                </>
-              ) : (
-                <>
-                  Remove 1 unit from <span className="font-semibold text-foreground">{quantityChange?.item.name}</span>?
-                  <br />
-                  <span className="text-muted-foreground">
-                    Current: {quantityChange?.item.quantity} → New: {Math.max(0, (quantityChange?.item.quantity || 0) - 1)}
-                  </span>
-                </>
-              )}
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>
+                  {quantityChange?.change && quantityChange.change > 0 ? "Add" : "Remove"} units {quantityChange?.change && quantityChange.change > 0 ? "to" : "from"}{" "}
+                  <span className="font-semibold text-foreground">{quantityChange?.item.name}</span>
+                </p>
+                
+                {/* Quantity spinner */}
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-sm text-muted-foreground">Amount:</span>
+                  <div className="flex items-center border border-border rounded-md">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={quantityChange?.change && quantityChange.change < 0 ? quantityChange.item.quantity : 9999}
+                      value={pendingChangeAmount}
+                      onChange={(e) => handlePendingAmountChange(e.target.value)}
+                      className="w-16 h-9 text-center border-0 focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <div className="flex flex-col border-l border-border">
+                      <button
+                        type="button"
+                        onClick={incrementPendingAmount}
+                        className="px-2 py-0.5 hover:bg-secondary transition-colors"
+                        disabled={quantityChange?.change && quantityChange.change < 0 && pendingChangeAmount >= quantityChange.item.quantity}
+                      >
+                        <ChevronUpIcon size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={decrementPendingAmount}
+                        className="px-2 py-0.5 hover:bg-secondary transition-colors border-t border-border"
+                        disabled={pendingChangeAmount <= 1}
+                      >
+                        <ChevronDownIcon size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-muted-foreground text-center">
+                  Current: {quantityChange?.item.quantity} → New:{" "}
+                  {quantityChange?.change && quantityChange.change > 0
+                    ? (quantityChange?.item.quantity || 0) + pendingChangeAmount
+                    : Math.max(0, (quantityChange?.item.quantity || 0) - pendingChangeAmount)}
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setPendingChangeAmount(1)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmQuantityChange}
               className={quantityChange?.change && quantityChange.change > 0 
@@ -391,7 +444,7 @@ const ItemsList = ({ items, onAddItem, onEditItem, onUpdateQuantity, onBulkUpdat
                 : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
               }
             >
-              {quantityChange?.change && quantityChange.change > 0 ? "Add" : "Remove"}
+              {quantityChange?.change && quantityChange.change > 0 ? `Add ${pendingChangeAmount}` : `Remove ${pendingChangeAmount}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
