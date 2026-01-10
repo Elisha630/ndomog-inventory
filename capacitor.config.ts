@@ -9,11 +9,11 @@ const config: CapacitorConfig = {
       smallIcon: "ic_stat_icon_config_sample",
       presentationOptions: ["badge", "sound", "alert"],
     },
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"],
+    },
     Camera: {
       permissionRequestText: "Ndomog needs camera access to scan barcodes and capture item photos"
-    },
-    PushNotifications: {
-      presentationOptions: ["badge", "sound", "alert"]
     }
   }
 };
