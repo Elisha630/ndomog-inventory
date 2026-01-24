@@ -35,31 +35,47 @@ export const initializeLocalNotifications = async (): Promise<boolean> => {
   }
 };
 
+// Test function to manually trigger a notification (useful for debugging)
+export const testLocalNotification = async (): Promise<void> => {
+  console.log('Testing local notification...');
+  await showLocalNotification(
+    'Test Notification',
+    'This is a test notification to verify Android notification bar display',
+    { type: 'test' }
+  );
+};
+
 export const showLocalNotification = async (title: string, body: string, extra?: any): Promise<void> => {
   if (!isInitialized) {
     const success = await initializeLocalNotifications();
-    if (!success) return;
+    if (!success) {
+      console.warn('Local notifications not initialized, cannot show notification');
+      return;
+    }
   }
 
   try {
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          title,
-          body,
-          id: Math.floor(Math.random() * 2147483647), // Larger random ID range
-          channelId: CHANNEL_ID,
-          extra,
-          // Removed smallIcon string to let Capacitor use the default from config
-          // This prevents failure if the string doesn't match the resource name exactly
-          schedule: { at: new Date(Date.now() + 500) }, // Slight delay to ensure bridge is ready
-          actionTypeId: '',
-          attachments: [],
-        },
-      ],
-    });
-    console.log('Native notification command sent to bridge:', title);
+    const notificationId = Math.floor(Math.random() * 2147483647);
+    const notification = {
+      title,
+      body,
+      id: notificationId,
+      channelId: CHANNEL_ID,
+      extra,
+      schedule: { at: new Date(Date.now() + 1000) }, // 1 second delay for reliability
+      actionTypeId: '',
+      attachments: [],
+      smallIcon: 'ic_stat_icon_config_sample', // Match capacitor.config.ts
+      sound: 'default', // Explicitly enable sound
+      // Ensure notification shows in status bar
+      ongoing: false,
+      autoCancel: true,
+    };
+
+    console.log('Scheduling local notification:', { id: notificationId, title, channel: CHANNEL_ID });
+    await LocalNotifications.schedule({ notifications: [notification] });
+    console.log('Local notification scheduled successfully');
   } catch (error) {
-    console.error('Bridge failed to show notification:', error);
+    console.error('Failed to schedule local notification:', error);
   }
 };

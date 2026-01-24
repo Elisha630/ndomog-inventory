@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye, Type, Sun, Moon, Contrast, RefreshCw, FolderOpen, Download, History, Settings } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Check, Loader2, LogOut, Shield, Fingerprint, Pencil, Eye, Type, Sun, Moon, Contrast, RefreshCw, FolderOpen, Download, History, Settings, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import { biometricService, BiometryType } from "@/services/biometricService";
 import { useTextSize, TextSize } from "@/hooks/useTextSize";
 import { useTheme } from "@/hooks/useTheme";
 import { useUpdateCheck } from "@/hooks/useUpdateCheck";
+import { testLocalNotification } from "@/services/localNotificationService";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -940,6 +941,27 @@ const Profile = () => {
                 Download Update
               </Button>
             )}
+
+            {/* Test Notification Button */}
+            <div className="pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await testLocalNotification();
+                  toast({
+                    title: "Test Notification Sent",
+                    description: "Check your notification bar for the test notification",
+                  });
+                }}
+                className="w-full justify-start"
+              >
+                <Bell className="mr-2" size={16} />
+                Test Notification
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Send a test notification to verify Android notification bar display
+              </p>
+            </div>
           </CardContent>
         </Card>
 

@@ -139,10 +139,14 @@ const NotificationBell = () => {
             const title = `${senderName} ${newNotification.action} ${newNotification.item_name}`;
             const body = newNotification.details || `Inventory update: ${newNotification.item_name}`;
             
-            console.log("Triggering native alert:", title);
-            showLocalNotification(title, body, {
+            console.log("Triggering local notification:", { title, body, notificationId: newNotification.id });
+            
+            // Trigger local notification for Android notification bar
+            await showLocalNotification(title, body, {
               type: "notification",
               notificationId: newNotification.id,
+            }).catch(err => {
+              console.error('Error showing local notification:', err);
             });
           }
         }
