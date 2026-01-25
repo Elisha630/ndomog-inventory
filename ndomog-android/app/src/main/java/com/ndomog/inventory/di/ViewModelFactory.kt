@@ -2,7 +2,9 @@ package com.ndomog.inventory.di
 
 import com.ndomog.inventory.presentation.auth.AuthViewModel
 import com.ndomog.inventory.presentation.profile.ProfileViewModel
-import com.ndomog.inventory.presentation.categories.CategoriesViewModel // Added import
+import com.ndomog.inventory.presentation.categories.CategoriesViewModel
+import com.ndomog.inventory.presentation.activity.ActivityViewModel
+import com.ndomog.inventory.presentation.notifications.NotificationsViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.ndomog.inventory.data.repository.AuthRepository
@@ -33,7 +35,12 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(CategoriesViewModel::class.java) -> {
                 CategoriesViewModel(database.categoryDao(), database.itemDao()) as T
             }
-            // Add other ViewModels here
+            modelClass.isAssignableFrom(ActivityViewModel::class.java) -> {
+                ActivityViewModel(database) as T
+            }
+            modelClass.isAssignableFrom(NotificationsViewModel::class.java) -> {
+                NotificationsViewModel(database) as T
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }

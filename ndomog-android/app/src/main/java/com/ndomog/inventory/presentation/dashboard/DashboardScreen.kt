@@ -101,11 +101,34 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    Text(
-                        "Ndomog Inventory",
-                        color = NdomogColors.TextLight,
-                        style = MaterialTheme.typography.headlineSmall
-                    ) 
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Logo icon - gear/cog icon matching the favicon
+                        Surface(
+                            modifier = Modifier.size(36.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            color = NdomogColors.Primary
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Filled.Settings,
+                                    contentDescription = null,
+                                    tint = NdomogColors.TextOnPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            "Ndomog Investment",
+                            color = NdomogColors.TextLight,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = NdomogColors.DarkCard,
@@ -394,7 +417,8 @@ fun DashboardScreen(
                 }
                 showAddEditDialog = false
             },
-            existingItem = itemToEdit
+            existingItem = itemToEdit,
+            categories = categories
         )
         
         // Delete Confirmation Dialog
