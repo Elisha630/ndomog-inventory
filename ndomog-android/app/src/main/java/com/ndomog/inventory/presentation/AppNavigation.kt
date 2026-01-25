@@ -58,7 +58,15 @@ fun AppNavigation(
         }
         composable(Routes.PROFILE) {
             val viewModelFactory = ViewModelFactory(authRepository, database)
-            ProfileScreen(onBack = { navController.popBackStack() }, viewModelFactory = viewModelFactory)
+            ProfileScreen(
+                onBack = { navController.popBackStack() },
+                viewModelFactory = viewModelFactory,
+                onLogout = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
         composable(Routes.CATEGORIES) {
             val viewModelFactory = ViewModelFactory(authRepository, database)

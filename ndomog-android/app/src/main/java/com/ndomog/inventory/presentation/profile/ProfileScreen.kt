@@ -7,6 +7,8 @@ import android.os.Environment
 import android.annotation.SuppressLint
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
@@ -59,21 +62,26 @@ private const val BUILD_NUMBER = "42"
 @Composable
 fun ProfileScreen(
     onBack: () -> Unit,
-    viewModelFactory: ViewModelFactory
+    viewModelFactory: ViewModelFactory,
+    onLogout: () -> Unit = {}
 ) {
     val viewModel: ProfileViewModel = viewModel(factory = viewModelFactory)
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val themePreferences = remember { ThemePreferences(context) }
     val pinPreferences = remember { PinPreferences(context) }
+    val scope = rememberCoroutineScope()
     
     val userEmail by viewModel.userEmail.collectAsState()
     val username by viewModel.username.collectAsState()
     val avatarUrl by viewModel.avatarUrl.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val successMessage by viewModel.successMessage.collectAsState()
     val isAdmin by viewModel.isAdmin.collectAsState()
     val isLoggedOut by viewModel.isLoggedOut.collectAsState()
+    val updateAvailable by viewModel.updateAvailable.collectAsState()
+    val latestRelease by viewModel.latestRelease.collectAsState()
 
     var isEditingUsername by remember { mutableStateOf(false) }
     var newUsername by remember { mutableStateOf("") }
@@ -91,6 +99,7 @@ fun ProfileScreen(
     
     var isPinEnabled by remember { mutableStateOf(false) }
     var isBiometricEnabled by remember { mutableStateOf(false) }
+    var biometricAvailable by remember { mutableStateOf(false) }
     
     // Load PIN state on composition
     LaunchedEffect(isPinEnabledState, isBiometricEnabledState) {
@@ -98,14 +107,23 @@ fun ProfileScreen(
         isBiometricEnabled = isBiometricEnabledState
     }
     
-    // Watch for logout and navigate
-    LaunchedEffect(isLoggedOut) {
-        if (isLoggedOut) {
-            onBack()  // Navigate to auth
+    // Check if biometric hardware is available
+    LaunchedEffect(Unit) {
+        val biometricManager = BiometricManager.from(context)
+        biometricAvailable = when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
+            BiometricManager.BIOMETRIC_SUCCESS -> true
+            else -> false
         }
     }
     
-    // Accessibility states - load from DataStore
+    // Watch for logout and navigate
+    LaunchedEffect(isLoggedOut) {
+        if (isLoggedOut) {
+            onLogout()
+        }
+    }
+    
+    // Accessibility states - these now persist and apply via ThemePreferences
     val isDarkMode by themePreferences.isDarkMode.collectAsState(true)
     val isHighContrast by themePreferences.isHighContrast.collectAsState(false)
     val textSizeValue by themePreferences.textSize.collectAsState(1f)
@@ -170,6 +188,37 @@ fun ProfileScreen(
             }
         } catch (_: Exception) {}
     }
+    
+    // Function to show biometric prompt
+    fun showBiometricPromptForEnabling() {
+        val activity = context as? FragmentActivity ?: return
+        val executor = ContextCompat.getMainExecutor(context)
+        val biometricPrompt = BiometricPrompt(activity, executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    isBiometricEnabled = true
+                    scope.launch {
+                        pinPreferences.setBiometricEnabled(true)
+                    }
+                }
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    // Don't enable biometric
+                }
+                override fun onAuthenticationFailed() {
+                    // Don't enable biometric
+                }
+            }
+        )
+        
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Enable Biometric Unlock")
+            .setSubtitle("Confirm your identity to enable biometric unlock")
+            .setNegativeButtonText("Cancel")
+            .build()
+        
+        biometricPrompt.authenticate(promptInfo)
+    }
 
     Scaffold(
         topBar = {
@@ -223,234 +272,299 @@ fun ProfileScreen(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
-            } else {
-                // Avatar Section with upload
+            }
+            
+            // Success message
+            if (successMessage != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = NdomogColors.Success.copy(alpha = 0.2f)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        successMessage!!,
+                        color = NdomogColors.Success,
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                LaunchedEffect(successMessage) {
+                    kotlinx.coroutines.delay(3000)
+                    viewModel.clearMessages()
+                }
+            }
+            
+            // Avatar Section with upload
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .padding(bottom = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 Box(
                     modifier = Modifier
-                        .size(100.dp)
-                        .padding(bottom = 8.dp),
+                        .size(96.dp)
+                        .border(
+                            width = 3.dp,
+                            color = NdomogColors.Primary,
+                            shape = CircleShape
+                        )
+                        .clip(CircleShape)
+                        .background(NdomogColors.DarkSecondary)
+                        .clickable { showAvatarOptions = true },
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(96.dp)
-                            .border(
-                                width = 3.dp,
-                                color = NdomogColors.Primary,
-                                shape = CircleShape
-                            )
-                            .clip(CircleShape)
-                            .background(NdomogColors.DarkSecondary)
-                            .clickable { showAvatarOptions = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (avatarUrl != null && avatarUrl!!.isNotEmpty()) {
-                            AsyncImage(
-                                model = avatarUrl,
-                                contentDescription = "Avatar",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                Icons.Filled.Person,
-                                contentDescription = "No avatar",
-                                tint = NdomogColors.Primary,
-                                modifier = Modifier.size(48.dp)
-                            )
-                        }
-                    }
-                    // Edit badge
-                    Surface(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .align(Alignment.BottomEnd),
-                        shape = CircleShape,
-                        color = NdomogColors.Primary
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clickable { showAvatarOptions = true }
-                        ) {
-                            Icon(
-                                Icons.Filled.Edit,
-                                contentDescription = "Edit Avatar",
-                                tint = NdomogColors.TextOnPrimary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                    if (avatarUrl != null && avatarUrl!!.isNotEmpty()) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = "Avatar",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            Icons.Filled.Person,
+                            contentDescription = "No avatar",
+                            tint = NdomogColors.Primary,
+                            modifier = Modifier.size(48.dp)
+                        )
                     }
                 }
+                // Edit badge
+                Surface(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .align(Alignment.BottomEnd),
+                    shape = CircleShape,
+                    color = NdomogColors.Primary
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable { showAvatarOptions = true }
+                    ) {
+                        Icon(
+                            Icons.Filled.Edit,
+                            contentDescription = "Edit Avatar",
+                            tint = NdomogColors.TextOnPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-                // Username section
-                if (isEditingUsername) {
-                    OutlinedTextField(
-                        value = newUsername,
-                        onValueChange = { newUsername = it },
-                        modifier = Modifier.fillMaxWidth(0.7f),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = NdomogColors.DarkBorder,
-                            focusedBorderColor = NdomogColors.Primary,
-                            unfocusedContainerColor = NdomogColors.DarkSecondary.copy(alpha = 0.5f),
-                            focusedContainerColor = NdomogColors.DarkSecondary.copy(alpha = 0.5f),
-                            unfocusedTextColor = Color.White,
-                            focusedTextColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        singleLine = true
+            // Username section
+            if (isEditingUsername) {
+                OutlinedTextField(
+                    value = newUsername,
+                    onValueChange = { newUsername = it },
+                    modifier = Modifier.fillMaxWidth(0.7f),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = NdomogColors.DarkBorder,
+                        focusedBorderColor = NdomogColors.Primary,
+                        unfocusedContainerColor = NdomogColors.DarkSecondary.copy(alpha = 0.5f),
+                        focusedContainerColor = NdomogColors.DarkSecondary.copy(alpha = 0.5f),
+                        unfocusedTextColor = Color.White,
+                        focusedTextColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    singleLine = true
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            viewModel.updateUsername(newUsername)
+                            isEditingUsername = false
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = NdomogColors.Primary),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Save", color = NdomogColors.TextOnPrimary, fontWeight = FontWeight.Bold)
+                    }
+                    OutlinedButton(
+                        onClick = { isEditingUsername = false },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "@${username ?: "Set username"}",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            color = NdomogColors.TextLight,
+                            fontWeight = FontWeight.Bold
+                        )
                     )
+                    IconButton(
+                        onClick = {
+                            newUsername = username ?: ""
+                            isEditingUsername = true
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Edit,
+                            contentDescription = "Edit Username",
+                            tint = NdomogColors.TextMuted,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            // Email display (non-editable)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Email,
+                    contentDescription = null,
+                    tint = NdomogColors.TextMuted,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    userEmail ?: "N/A",
+                    style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Admin Tools Section (only visible for admins) - Merged with Manage Users
+            if (isAdmin) {
+                SettingSection(
+                    title = "Admin Tools",
+                    subtitle = "Manage app settings, releases and users",
+                    icon = Icons.Filled.AdminPanelSettings,
+                    items = listOf(
+                        SettingItem(
+                            label = "Manage App Releases",
+                            icon = Icons.Filled.Download,
+                            action = { /* TODO: Navigate to releases */ }
+                        ),
+                        SettingItem(
+                            label = "Manage Users",
+                            icon = Icons.Filled.People,
+                            action = { /* TODO: Navigate to users */ }
+                        )
+                    )
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Account Security Section
+            SettingSection(
+                title = "Account Security",
+                icon = Icons.Filled.Lock,
+                items = listOf(
+                    SettingItem(
+                        label = "Change Password",
+                        icon = Icons.Filled.VpnKey,
+                        action = { showChangePasswordDialog = true }
+                    )
+                )
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // PIN Lock Section with toggle
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = NdomogColors.DarkCard.copy(alpha = 0.6f)),
+                border = BorderStroke(1.dp, NdomogColors.Primary.copy(alpha = 0.2f)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth(0.7f)
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                viewModel.updateUsername(newUsername)
-                                isEditingUsername = false
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = NdomogColors.Primary),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Save", color = NdomogColors.TextOnPrimary, fontWeight = FontWeight.Bold)
-                        }
-                        OutlinedButton(
-                            onClick = { isEditingUsername = false },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Cancel")
-                        }
-                    }
-                } else {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
+                            .fillMaxWidth()
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Icon(
+                            imageVector = Icons.Filled.Pin,
+                            contentDescription = "PIN Lock",
+                            tint = NdomogColors.Primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "@${username ?: "Set username"}",
-                            style = MaterialTheme.typography.titleLarge.copy(
+                            "PIN Lock",
+                            style = MaterialTheme.typography.titleSmall.copy(
                                 color = NdomogColors.TextLight,
                                 fontWeight = FontWeight.Bold
                             )
                         )
-                        IconButton(
-                            onClick = {
-                                newUsername = username ?: ""
-                                isEditingUsername = true
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Filled.Edit,
-                                contentDescription = "Edit Username",
-                                tint = NdomogColors.TextMuted,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
                     }
-                }
-
-                // Email display (non-editable)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    Icon(
-                        Icons.Filled.Email,
-                        contentDescription = null,
-                        tint = NdomogColors.TextMuted,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        userEmail ?: "N/A",
-                        style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted)
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Admin Tools Section (only visible for admins)
-                if (isAdmin) {
-                    SettingSection(
-                        title = "Admin Tools",
-                        subtitle = "Manage app settings and releases",
-                        icon = Icons.Filled.AdminPanelSettings,
-                        items = listOf(
-                            SettingItem(
-                                label = "Manage App Releases",
-                                icon = Icons.Filled.Download,
-                                action = { /* TODO: Navigate to releases */ }
-                            ),
-                            SettingItem(
-                                label = "Manage Users",
-                                icon = Icons.Filled.People,
-                                action = { /* TODO: Navigate to users */ }
-                            )
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-
-                // Account Security Section
-                SettingSection(
-                    title = "Account Security",
-                    icon = Icons.Filled.Lock,
-                    items = listOf(
-                        SettingItem(
-                            label = "Change Password",
-                            icon = Icons.Filled.VpnKey,
-                            action = { showChangePasswordDialog = true }
-                        )
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // PIN Lock Section with toggle
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = NdomogColors.DarkCard.copy(alpha = 0.6f)),
-                    border = BorderStroke(1.dp, NdomogColors.Primary.copy(alpha = 0.2f)),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Pin,
-                                contentDescription = "PIN Lock",
-                                tint = NdomogColors.Primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Divider(color = NdomogColors.DarkBorder.copy(alpha = 0.3f))
+                    
+                    // Enable PIN Lock toggle
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
                             Text(
-                                "PIN Lock",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    color = NdomogColors.TextLight,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                "Enable PIN Lock",
+                                style = MaterialTheme.typography.bodyMedium.copy(color = NdomogColors.TextLight)
+                            )
+                            Text(
+                                "Require a PIN to access the app",
+                                style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted)
                             )
                         }
-                        
+                        Switch(
+                            checked = isPinEnabled,
+                            onCheckedChange = { newValue ->
+                                if (newValue) {
+                                    showPinSetupDialog = true
+                                } else {
+                                    isPinEnabled = false
+                                    isBiometricEnabled = false
+                                    // Clear PIN from DataStore
+                                    scope.launch {
+                                        pinPreferences.setPinEnabled(false)
+                                        pinPreferences.setBiometricEnabled(false)
+                                    }
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NdomogColors.Primary,
+                                checkedTrackColor = NdomogColors.Primary.copy(alpha = 0.5f)
+                            )
+                        )
+                    }
+                    
+                    // Biometric toggle (only if PIN is enabled and biometric is available)
+                    if (isPinEnabled && biometricAvailable) {
                         Divider(color = NdomogColors.DarkBorder.copy(alpha = 0.3f))
-                        
-                        // Enable PIN Lock toggle
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -460,25 +574,23 @@ fun ProfileScreen(
                         ) {
                             Column {
                                 Text(
-                                    "Enable PIN Lock",
+                                    "Use Biometrics",
                                     style = MaterialTheme.typography.bodyMedium.copy(color = NdomogColors.TextLight)
                                 )
                                 Text(
-                                    "Require a PIN to access the app",
+                                    "Unlock with fingerprint or face",
                                     style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted)
                                 )
                             }
                             Switch(
-                                checked = isPinEnabled,
+                                checked = isBiometricEnabled,
                                 onCheckedChange = { newValue ->
                                     if (newValue) {
-                                        showPinSetupDialog = true
+                                        // Require biometric authentication to enable
+                                        showBiometricPromptForEnabling()
                                     } else {
-                                        isPinEnabled = false
                                         isBiometricEnabled = false
-                                        // Clear PIN from DataStore
-                                        viewModel.viewModelScope.launch {
-                                            pinPreferences.setPinEnabled(false)
+                                        scope.launch {
                                             pinPreferences.setBiometricEnabled(false)
                                         }
                                     }
@@ -489,286 +601,92 @@ fun ProfileScreen(
                                 )
                             )
                         }
-                        
-                        // Biometric toggle (only if PIN is enabled)
-                        if (isPinEnabled) {
-                            Divider(color = NdomogColors.DarkBorder.copy(alpha = 0.3f))
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        "Use Biometrics",
-                                        style = MaterialTheme.typography.bodyMedium.copy(color = NdomogColors.TextLight)
-                                    )
-                                    Text(
-                                        "Unlock with fingerprint or face",
-                                        style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted)
-                                    )
-                                }
-                                Switch(
-                                    checked = isBiometricEnabled,
-                                    onCheckedChange = { newValue ->
-                                        if (newValue) {
-                                            // TODO: Show biometric authentication prompt
-                                            // For now, just enable it
-                                            isBiometricEnabled = true
-                                            viewModel.viewModelScope.launch {
-                                                pinPreferences.setBiometricEnabled(true)
-                                            }
-                                        } else {
-                                            isBiometricEnabled = false
-                                            viewModel.viewModelScope.launch {
-                                                pinPreferences.setBiometricEnabled(false)
-                                            }
-                                        }
-                                    },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = NdomogColors.Primary,
-                                        checkedTrackColor = NdomogColors.Primary.copy(alpha = 0.5f)
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Accessibility Section
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = NdomogColors.DarkCard.copy(alpha = 0.6f)),
-                    border = BorderStroke(1.dp, NdomogColors.Primary.copy(alpha = 0.2f)),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    } else if (isPinEnabled && !biometricAvailable) {
+                        Divider(color = NdomogColors.DarkBorder.copy(alpha = 0.3f))
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Accessibility,
-                                contentDescription = "Accessibility",
-                                tint = NdomogColors.Primary,
-                                modifier = Modifier.size(20.dp)
+                                Icons.Filled.Info,
+                                contentDescription = null,
+                                tint = NdomogColors.TextMuted,
+                                modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "Accessibility",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    color = NdomogColors.TextLight,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            )
-                        }
-                        
-                        Divider(color = NdomogColors.DarkBorder.copy(alpha = 0.3f))
-                        
-                        // Dark Mode toggle
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    "Dark Mode",
-                                    style = MaterialTheme.typography.bodyMedium.copy(color = NdomogColors.TextLight)
-                                )
-                                Text(
-                                    if (isDarkMode) "Dark theme enabled" else "Light theme enabled",
-                                    style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted)
-                                )
-                            }
-                            Switch(
-                                checked = isDarkMode,
-                                onCheckedChange = { newValue ->
-                                    // Save to DataStore
-                                    viewModel.viewModelScope.launch {
-                                        themePreferences.setDarkMode(newValue)
-                                    }
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = NdomogColors.Primary,
-                                    checkedTrackColor = NdomogColors.Primary.copy(alpha = 0.5f)
-                                )
-                            )
-                        }
-                        
-                        Divider(color = NdomogColors.DarkBorder.copy(alpha = 0.3f))
-                        
-                        // High Contrast toggle
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    "High Contrast",
-                                    style = MaterialTheme.typography.bodyMedium.copy(color = NdomogColors.TextLight)
-                                )
-                                Text(
-                                    if (isHighContrast) "High contrast enabled" else "Standard contrast",
-                                    style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted)
-                                )
-                            }
-                            Switch(
-                                checked = isHighContrast,
-                                onCheckedChange = { newValue ->
-                                    // Save to DataStore
-                                    viewModel.viewModelScope.launch {
-                                        themePreferences.setHighContrast(newValue)
-                                    }
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = NdomogColors.Primary,
-                                    checkedTrackColor = NdomogColors.Primary.copy(alpha = 0.5f)
-                                )
-                            )
-                        }
-                        
-                        Divider(color = NdomogColors.DarkBorder.copy(alpha = 0.3f))
-                        
-                        // Text Size slider
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    "Text Size",
-                                    style = MaterialTheme.typography.bodyMedium.copy(color = NdomogColors.TextLight)
-                                )
-                                Text(
-                                    when {
-                                        textSizeValue < 0.9f -> "Small"
-                                        textSizeValue < 1.1f -> "Normal"
-                                        textSizeValue < 1.3f -> "Large"
-                                        else -> "Extra Large"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted)
-                                )
-                            }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(top = 8.dp)
-                            ) {
-                                Text("A", style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted))
-                                Slider(
-                                    value = textSizeValue,
-                                    onValueChange = { newValue ->
-                                        // Save to DataStore
-                                        viewModel.viewModelScope.launch {
-                                            themePreferences.setTextSize(newValue)
-                                        }
-                                    },
-                                    valueRange = 0.8f..1.4f,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(horizontal = 8.dp),
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = NdomogColors.Primary,
-                                        activeTrackColor = NdomogColors.Primary
-                                    )
-                                )
-                                Text("A", style = MaterialTheme.typography.titleMedium.copy(color = NdomogColors.TextMuted))
-                            }
-                            Text(
-                                "Adjust text size for better readability",
+                                "Biometric unlock not available on this device",
                                 style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted)
                             )
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // App Management & About Section (merged)
-                SettingSection(
-                    title = "App Management",
-                    icon = Icons.Filled.Settings,
-                    items = listOf(
-                        SettingItem(
-                            label = "Check for Updates",
-                            icon = Icons.Filled.Refresh,
-                            action = { showVersionInfoDialog = true }
-                        ),
-                        SettingItem(
-                            label = "About This App",
-                            icon = Icons.Filled.HelpOutline,
-                            action = { showAboutDialog = true }
-                        ),
-                        SettingItem(
-                            label = "Privacy Policy",
-                            icon = Icons.Filled.PrivacyTip,
-                            action = { uriHandler.openUri("https://ndomog.com/privacy") }
-                        ),
-                        SettingItem(
-                            label = "Terms of Service",
-                            icon = Icons.Filled.Description,
-                            action = { uriHandler.openUri("https://ndomog.com/terms") }
-                        )
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // App Version at the bottom
-                Text(
-                    "Version $APP_VERSION (Build $BUILD_NUMBER)",
-                    style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Sign Out Button
-                Button(
-                    onClick = { viewModel.logout() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = NdomogColors.Error
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(
-                        Icons.Filled.ExitToApp,
-                        contentDescription = "Sign Out",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Sign Out",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // App Management Section (merged with About)
+            SettingSection(
+                title = "App Management",
+                icon = Icons.Filled.Settings,
+                items = listOf(
+                    SettingItem(
+                        label = "Check for Updates",
+                        icon = Icons.Filled.Refresh,
+                        action = { 
+                            viewModel.checkForUpdates()
+                            showVersionInfoDialog = true
+                        }
+                    ),
+                    SettingItem(
+                        label = "About This App",
+                        icon = Icons.Filled.HelpOutline,
+                        action = { showAboutDialog = true }
+                    )
+                )
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Sign Out Button
+            Button(
+                onClick = { viewModel.logout() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = NdomogColors.Error
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(
+                    Icons.Filled.ExitToApp,
+                    contentDescription = "Sign Out",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Sign Out",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // App Version at the very bottom
+            Text(
+                "Version $APP_VERSION (Build $BUILD_NUMBER)",
+                style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextMuted),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
     
@@ -847,7 +765,7 @@ fun ProfileScreen(
                 isPinEnabled = true
                 showPinSetupDialog = false
                 // Save PIN securely to DataStore
-                viewModel.viewModelScope.launch {
+                scope.launch {
                     pinPreferences.setPinEnabled(true)
                     // In a real app, hash the PIN before storing
                     pinPreferences.setPinHash(pin) // TODO: Use proper hashing
@@ -861,18 +779,33 @@ fun ProfileScreen(
         VersionInfoDialog(
             currentVersion = APP_VERSION,
             buildNumber = BUILD_NUMBER,
+            updateAvailable = updateAvailable,
+            latestVersion = latestRelease?.version,
             onDismiss = { showVersionInfoDialog = false },
-            onCheckUpdates = {
-                // TODO: Check for updates
+            onCheckUpdates = { viewModel.checkForUpdates() },
+            onDownload = {
+                latestRelease?.downloadUrl?.let { url ->
+                    uriHandler.openUri(url)
+                }
             }
         )
     }
     
     // About Dialog
     if (showAboutDialog) {
-        AboutDialog(onDismiss = { showAboutDialog = false })
+        AboutDialog(
+            onDismiss = { showAboutDialog = false },
+            onPrivacyPolicy = { uriHandler.openUri("https://ndomog.com/privacy") },
+            onTermsOfService = { uriHandler.openUri("https://ndomog.com/terms") }
+        )
     }
 }
+
+data class SettingItem(
+    val label: String,
+    val icon: ImageVector,
+    val action: () -> Unit
+)
 
 @Composable
 fun SettingSection(
@@ -1188,8 +1121,11 @@ fun PinSetupDialog(
 fun VersionInfoDialog(
     currentVersion: String,
     buildNumber: String,
+    updateAvailable: Boolean,
+    latestVersion: String?,
     onDismiss: () -> Unit,
-    onCheckUpdates: () -> Unit
+    onCheckUpdates: () -> Unit,
+    onDownload: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1214,39 +1150,57 @@ fun VersionInfoDialog(
                     Text("Build Number:", color = NdomogColors.TextMuted)
                     Text(buildNumber, color = NdomogColors.TextLight)
                 }
-                Spacer(modifier = Modifier.height(16.dp))
                 
-                // Recent versions list
-                Text(
-                    "Recent Versions",
-                    style = MaterialTheme.typography.titleSmall.copy(color = NdomogColors.TextLight),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                listOf(
-                    "v1.2.3" to "Current version",
-                    "v1.2.2" to "Bug fixes and improvements",
-                    "v1.2.1" to "Performance optimizations"
-                ).forEach { (version, notes) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                if (updateAvailable && latestVersion != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = NdomogColors.Success.copy(alpha = 0.2f)),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text(version, color = NdomogColors.Primary, style = MaterialTheme.typography.bodySmall)
-                        Text(notes, color = NdomogColors.TextMuted, style = MaterialTheme.typography.bodySmall)
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                "Update Available!",
+                                color = NdomogColors.Success,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Version $latestVersion is available for download.",
+                                color = NdomogColors.TextMuted,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
+                } else {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "You're on the latest version!",
+                        color = NdomogColors.TextMuted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         },
         confirmButton = {
-            Button(
-                onClick = onCheckUpdates,
-                colors = ButtonDefaults.buttonColors(containerColor = NdomogColors.Primary)
-            ) {
-                Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Check for Updates", color = NdomogColors.TextOnPrimary)
+            if (updateAvailable) {
+                Button(
+                    onClick = onDownload,
+                    colors = ButtonDefaults.buttonColors(containerColor = NdomogColors.Primary)
+                ) {
+                    Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Download Update", color = NdomogColors.TextOnPrimary)
+                }
+            } else {
+                Button(
+                    onClick = onCheckUpdates,
+                    colors = ButtonDefaults.buttonColors(containerColor = NdomogColors.Primary)
+                ) {
+                    Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Check for Updates", color = NdomogColors.TextOnPrimary)
+                }
             }
         },
         dismissButton = {
@@ -1258,7 +1212,11 @@ fun VersionInfoDialog(
 }
 
 @Composable
-fun AboutDialog(onDismiss: () -> Unit) {
+fun AboutDialog(
+    onDismiss: () -> Unit,
+    onPrivacyPolicy: () -> Unit,
+    onTermsOfService: () -> Unit
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = NdomogColors.DarkCard,
@@ -1314,10 +1272,36 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 Divider(color = NdomogColors.DarkBorder)
                 Spacer(modifier = Modifier.height(12.dp))
                 
+                // Links
+                TextButton(
+                    onClick = onPrivacyPolicy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.PrivacyTip, contentDescription = null, tint = NdomogColors.Primary, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Privacy Policy", color = NdomogColors.Primary)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(Icons.Filled.OpenInNew, contentDescription = null, tint = NdomogColors.TextMuted, modifier = Modifier.size(14.dp))
+                }
+                
+                TextButton(
+                    onClick = onTermsOfService,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.Description, contentDescription = null, tint = NdomogColors.Primary, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Terms of Service", color = NdomogColors.Primary)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(Icons.Filled.OpenInNew, contentDescription = null, tint = NdomogColors.TextMuted, modifier = Modifier.size(14.dp))
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     "© 2024 Ndomog Investment. All rights reserved.",
                     color = NdomogColors.TextMuted,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
         },
@@ -1325,12 +1309,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
             TextButton(onClick = onDismiss) {
                 Text("Close", color = NdomogColors.Primary)
             }
-        }
+        },
+        dismissButton = {}
     )
 }
-
-data class SettingItem(
-    val label: String,
-    val icon: ImageVector,
-    val action: () -> Unit
-)

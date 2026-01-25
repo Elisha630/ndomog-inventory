@@ -13,10 +13,22 @@ import com.ndomog.inventory.data.remote.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.util.UUID
+
+@Serializable
+data class NotificationInsert(
+    val id: String,
+    val user_id: String,
+    val action_user_id: String,
+    val action: String,
+    val item_name: String,
+    val details: String?,
+    val is_read: Boolean = false
+)
 
 class ItemRepository(
     private val itemDao: ItemDao,
@@ -70,7 +82,8 @@ class ItemRepository(
             try {
                 // Sync to Supabase immediately
                 supabase.from("items").insert(item)
-                logActivity("CREATE", item.id, item.name, null)
+                logActivity("CREATE", item.id, item.name, "Added new item: ${item.name}")
+                sendNotificationsToOtherUsers("added", item.name, "Added new item to inventory")
             } catch (e: Exception) {
                 Timber.e(e, "Failed to sync item online, queuing for later")
                 queueAction(ActionType.ADD_ITEM, item.id, Json.encodeToString(item))
@@ -92,7 +105,8 @@ class ItemRepository(
                         eq("id", item.id)
                     }
                 }
-                logActivity("UPDATE", item.id, item.name, null)
+                logActivity("UPDATE", item.id, item.name, "Updated item: ${item.name}")
+                sendNotificationsToOtherUsers("updated", item.name, "Updated item details")
             } catch (e: Exception) {
                 Timber.e(e, "Failed to update item online, queuing for later")
                 queueAction(ActionType.UPDATE_ITEM, item.id, Json.encodeToString(item))
@@ -104,6 +118,8 @@ class ItemRepository(
 
     // Update quantity
     suspend fun updateQuantity(id: String, quantity: Int, isOnline: Boolean) {
+        val oldItem = itemDao.getItemById(id)
+        val oldQuantity = oldItem?.quantity ?: 0
         itemDao.updateQuantity(id, quantity)
 
         if (isOnline) {
@@ -115,7 +131,13 @@ class ItemRepository(
                 }
                 // Get item name for logging
                 val item = itemDao.getItemById(id)
-                logActivity("UPDATE_QUANTITY", id, item?.name ?: "Unknown", null)
+                val changeText = if (quantity > oldQuantity) "Added ${quantity - oldQuantity} units" else "Removed ${oldQuantity - quantity} units"
+                logActivity("UPDATE_QUANTITY", id, item?.name ?: "Unknown", changeText)
+                sendNotificationsToOtherUsers(
+                    if (quantity > oldQuantity) "added" else "removed",
+                    item?.name ?: "Unknown",
+                    "Quantity changed from $oldQuantity to $quantity"
+                )
             } catch (e: Exception) {
                 Timber.e(e, "Failed to update quantity online, queuing for later")
                 queueAction(ActionType.UPDATE_QUANTITY, id, Json.encodeToString(mapOf("quantity" to quantity)))
@@ -144,7 +166,8 @@ class ItemRepository(
                         eq("id", id)
                     }
                 }
-                logActivity("DELETE", id, item?.name ?: "Unknown", null)
+                logActivity("DELETE", id, item?.name ?: "Unknown", "Deleted item: ${item?.name ?: "Unknown"}")
+                sendNotificationsToOtherUsers("deleted", item?.name ?: "Unknown", "Removed item from inventory")
             } catch (e: Exception) {
                 Timber.e(e, "Failed to delete item online, queuing for later")
                 queueAction(ActionType.DELETE_ITEM, id, Json.encodeToString(mapOf("deleted_at" to now, "deleted_by" to userId)))
@@ -193,6 +216,46 @@ class ItemRepository(
             }
         } catch (e: Exception) {
             Timber.e(e, "Failed to log activity")
+        }
+    }
+
+    private suspend fun sendNotificationsToOtherUsers(action: String, itemName: String, details: String) {
+        try {
+            val currentUser = authRepository.getCurrentUser() ?: return
+            val currentUserId = currentUser.id
+            
+            // Get all other users from profiles table
+            val allProfiles = supabase.from("profiles")
+                .select()
+                .decodeList<Profile>()
+            
+            val otherUserIds = allProfiles
+                .filter { it.id != currentUserId }
+                .map { it.id }
+            
+            if (otherUserIds.isEmpty()) {
+                Timber.d("No other users to notify")
+                return
+            }
+            
+            // Create notifications for each user
+            val notifications = otherUserIds.map { userId ->
+                NotificationInsert(
+                    id = UUID.randomUUID().toString(),
+                    user_id = userId,
+                    action_user_id = currentUserId,
+                    action = action,
+                    item_name = itemName,
+                    details = details,
+                    is_read = false
+                )
+            }
+            
+            // Insert all notifications
+            supabase.from("notifications").insert(notifications)
+            Timber.d("Sent notifications to ${notifications.size} users")
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to send notifications to other users")
         }
     }
 

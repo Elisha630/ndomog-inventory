@@ -14,7 +14,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import timber.log.Timber
+
+@Serializable
+data class UserRole(
+    val id: String = "",
+    val user_id: String,
+    val role: String
+)
 
 class ProfileViewModel(
     private val authRepository: AuthRepository,
@@ -35,6 +43,9 @@ class ProfileViewModel(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+    
+    private val _successMessage = MutableStateFlow<String?>(null)
+    val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
     
     private val _isAdmin = MutableStateFlow(false)
     val isAdmin: StateFlow<Boolean> = _isAdmin.asStateFlow()
@@ -104,17 +115,17 @@ class ProfileViewModel(
     
     private suspend fun checkAdminStatus(userId: String) {
         try {
-            // Check user_roles table for admin role
+            // Check user_roles table for admin role using proper deserialization
             val roles = SupabaseClient.client.from("user_roles").select {
                 filter {
                     eq("user_id", userId)
-                    eq("role", "admin")
                 }
-            }.decodeList<Map<String, Any>>()
+            }.decodeList<UserRole>()
             
-            _isAdmin.value = roles.isNotEmpty()
+            _isAdmin.value = roles.any { it.role == "admin" }
+            Timber.d("Admin status for user $userId: ${_isAdmin.value}, roles found: ${roles.size}")
         } catch (e: Exception) {
-            Timber.e(e, "Failed to check admin status")
+            Timber.e(e, "Failed to check admin status: ${e.message}")
             _isAdmin.value = false
         }
     }
@@ -134,6 +145,7 @@ class ProfileViewModel(
                         }
                     _username.value = newUsername
                     profileDao.insertProfile(Profile(id = userId, email = _userEmail.value ?: "", username = newUsername, avatarUrl = _avatarUrl.value))
+                    _successMessage.value = "Username updated successfully"
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to update username")
@@ -159,6 +171,7 @@ class ProfileViewModel(
                         }
                     _avatarUrl.value = newAvatarUrl
                     profileDao.insertProfile(Profile(id = userId, email = _userEmail.value ?: "", username = _username.value, avatarUrl = newAvatarUrl))
+                    _successMessage.value = "Avatar updated successfully"
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to update avatar")
@@ -173,6 +186,7 @@ class ProfileViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
+            _successMessage.value = null
             try {
                 // First, verify old password by attempting to re-authenticate
                 val currentUser = authRepository.getCurrentUser()
@@ -182,13 +196,14 @@ class ProfileViewModel(
                 val verifyResult = authRepository.signIn(email, oldPassword)
 
                 if (verifyResult.isSuccess) {
-                    // Old password is correct, now update to new password
-                    val updateResult = authRepository.updatePassword(newPassword)
+                    // Old password is correct, send password reset email
+                    // Supabase Kotlin SDK doesn't support direct password change
+                    val resetResult = authRepository.sendPasswordResetEmail(email)
 
-                    if (updateResult.isSuccess) {
-                        _error.value = "Password updated successfully"
+                    if (resetResult.isSuccess) {
+                        _successMessage.value = "Password reset email sent. Please check your inbox."
                     } else {
-                        _error.value = updateResult.exceptionOrNull()?.message ?: "Failed to update password"
+                        _error.value = resetResult.exceptionOrNull()?.message ?: "Failed to send reset email"
                     }
                 } else {
                     _error.value = "Current password is incorrect"
@@ -206,9 +221,14 @@ class ProfileViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                authRepository.signOut()
-                _isLoggedOut.value = true
+                val result = authRepository.signOut()
+                if (result.isSuccess) {
+                    _isLoggedOut.value = true
+                } else {
+                    _error.value = result.exceptionOrNull()?.message ?: "Failed to log out"
+                }
             } catch (e: Exception) {
+                Timber.e(e, "Failed to log out")
                 _error.value = e.message ?: "Failed to log out"
             } finally {
                 _isLoading.value = false
@@ -217,16 +237,26 @@ class ProfileViewModel(
     }
 
     fun checkForUpdates() {
+        _error.value = null
         appReleaseService.checkForUpdates(
             onUpdateAvailable = { release ->
                 _updateAvailable.value = true
                 _latestRelease.value = release
-                _error.value = null
+                _successMessage.value = "New version ${release.version} available!"
             },
             onError = { errorMessage ->
                 _updateAvailable.value = false
-                _error.value = errorMessage
+                if (errorMessage.contains("up to date", ignoreCase = true)) {
+                    _successMessage.value = "You're on the latest version!"
+                } else {
+                    _error.value = errorMessage
+                }
             }
         )
+    }
+    
+    fun clearMessages() {
+        _error.value = null
+        _successMessage.value = null
     }
 }
