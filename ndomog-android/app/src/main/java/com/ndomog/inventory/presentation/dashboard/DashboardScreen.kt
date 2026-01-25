@@ -30,14 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ndomog.inventory.data.models.Item
 import com.ndomog.inventory.di.ViewModelFactory
-
-// Color constants matching design
-private val DarkBackground = Color(0xFF0F172A)
-private val DarkCard = Color(0xFF1E293B)
-private val AmberPrimary = Color(0xFFF59E0B)
-private val TextLight = Color(0xFFFFFFFF)
-private val TextMuted = Color(0xFF94A3B8)
-private val RedError = Color(0xFFF87171)
+import com.ndomog.inventory.presentation.theme.NdomogColors
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,23 +55,23 @@ fun DashboardScreen(
                 title = { 
                     Text(
                         "Ndomog Inventory",
-                        color = TextLight,
+                        color = NdomogColors.TextLight,
                         style = MaterialTheme.typography.headlineSmall
                     ) 
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DarkCard,
-                    scrolledContainerColor = DarkCard
+                    containerColor = NdomogColors.DarkCard,
+                    scrolledContainerColor = NdomogColors.DarkCard
                 ),
                 actions = {
                     IconButton(onClick = onNavigateToCategories) {
-                        Icon(Icons.Filled.Category, contentDescription = "Categories", tint = AmberPrimary)
+                        Icon(Icons.Filled.Category, contentDescription = "Categories", tint = NdomogColors.Primary)
                     }
                     IconButton(onClick = onNavigateToProfile) {
-                        Icon(Icons.Filled.Person, contentDescription = "Profile", tint = AmberPrimary)
+                        Icon(Icons.Filled.Person, contentDescription = "Profile", tint = NdomogColors.Primary)
                     }
                     IconButton(onClick = onLogout) {
-                        Icon(Icons.Filled.ExitToApp, contentDescription = "Logout", tint = RedError)
+                        Icon(Icons.Filled.ExitToApp, contentDescription = "Logout", tint = NdomogColors.Error)
                     }
                 }
             )
@@ -89,37 +82,37 @@ fun DashboardScreen(
                     itemToEdit = null
                     showAddEditDialog = true
                 },
-                containerColor = AmberPrimary,
-                contentColor = Color(0xFF111827)
+                containerColor = NdomogColors.Primary,
+                contentColor = NdomogColors.TextOnPrimary
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "Add Item", modifier = Modifier.size(24.dp))
             }
         },
-        containerColor = DarkBackground
+        containerColor = NdomogColors.DarkBackground
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DarkBackground)
+                .background(NdomogColors.DarkBackground)
                 .padding(paddingValues)
         ) {
             if (isLoading) {
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth(),
-                    color = AmberPrimary,
-                    trackColor = DarkCard
+                    color = NdomogColors.Primary,
+                    trackColor = NdomogColors.DarkCard
                 )
             } else if (error != null) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF7F1D1D)),
+                    colors = CardDefaults.cardColors(containerColor = NdomogColors.ErrorBackground),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         "Error: $error",
-                        color = Color(0xFFFCA5A5),
+                        color = NdomogColors.ErrorText,
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -130,12 +123,30 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            "No items found.\nClick '+' to add one!",
-                            color = TextMuted,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                Icons.Filled.Inventory2,
+                                contentDescription = "No items",
+                                tint = NdomogColors.TextMuted,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "No items found.",
+                                color = NdomogColors.TextMuted,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                "Click '+' to add your first item!",
+                                color = NdomogColors.TextMuted.copy(alpha = 0.7f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
                     }
                 } else {
                     Column(
@@ -144,7 +155,7 @@ fun DashboardScreen(
                             .verticalScroll(rememberScrollState())
                             .padding(16.dp)
                     ) {
-                        // Stats Cards
+                        // Stats Cards (matching web StatsCards component)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -168,7 +179,7 @@ fun DashboardScreen(
                         Text(
                             "Inventory Items",
                             style = MaterialTheme.typography.headlineSmall.copy(
-                                color = TextLight,
+                                color = NdomogColors.TextLight,
                                 fontWeight = FontWeight.Bold
                             ),
                             modifier = Modifier.padding(bottom = 12.dp)
@@ -222,9 +233,9 @@ fun StatsCard(
         modifier = modifier
             .height(100.dp),
         colors = CardDefaults.cardColors(
-            containerColor = DarkCard.copy(alpha = 0.8f)
+            containerColor = NdomogColors.DarkCard.copy(alpha = 0.8f)
         ),
-        border = BorderStroke(1.dp, AmberPrimary.copy(alpha = 0.3f)),
+        border = BorderStroke(1.dp, NdomogColors.Primary.copy(alpha = 0.3f)),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
@@ -237,20 +248,20 @@ fun StatsCard(
             Icon(
                 imageVector = icon,
                 contentDescription = title,
-                tint = AmberPrimary,
+                tint = NdomogColors.Primary,
                 modifier = Modifier.size(20.dp)
             )
             Text(
                 value,
                 style = MaterialTheme.typography.headlineSmall.copy(
-                    color = TextLight,
+                    color = NdomogColors.TextLight,
                     fontWeight = FontWeight.Bold
                 ),
                 fontSize = 20.sp
             )
             Text(
                 title,
-                style = MaterialTheme.typography.labelSmall.copy(color = TextMuted),
+                style = MaterialTheme.typography.labelSmall.copy(color = NdomogColors.TextMuted),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -265,9 +276,9 @@ fun ItemCard(item: Item, onEdit: (Item) -> Unit) {
             .fillMaxWidth()
             .clickable { onEdit(item) },
         colors = CardDefaults.cardColors(
-            containerColor = DarkCard.copy(alpha = 0.8f)
+            containerColor = NdomogColors.DarkCard.copy(alpha = 0.8f)
         ),
-        border = BorderStroke(1.dp, AmberPrimary.copy(alpha = 0.2f)),
+        border = BorderStroke(1.dp, NdomogColors.Primary.copy(alpha = 0.2f)),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -277,7 +288,7 @@ fun ItemCard(item: Item, onEdit: (Item) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)
-                    .background(Color(0xFF0F172A))
+                    .background(NdomogColors.DarkBackground)
                     .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
                 contentAlignment = Alignment.Center
             ) {
@@ -292,24 +303,24 @@ fun ItemCard(item: Item, onEdit: (Item) -> Unit) {
                     Icon(
                         Icons.Filled.Image,
                         contentDescription = "No image",
-                        tint = TextMuted,
+                        tint = NdomogColors.TextMuted,
                         modifier = Modifier.size(40.dp)
                     )
                 }
 
                 // Stock Status Badge
-                val isLow = item.quantity <= 0 || item.quantity <= 5
+                val isLow = item.quantity <= 0 || item.quantity <= (item.lowStockThreshold ?: 5)
                 if (isLow) {
                     Surface(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(8.dp),
-                        color = if (item.quantity <= 0) RedError else AmberPrimary,
+                        color = if (item.quantity <= 0) NdomogColors.Error else NdomogColors.Primary,
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
                             if (item.quantity <= 0) "Out" else "Low",
-                            color = if (item.quantity <= 0) Color.White else Color(0xFF111827),
+                            color = if (item.quantity <= 0) Color.White else NdomogColors.TextOnPrimary,
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.padding(4.dp, 2.dp)
                         )
@@ -326,7 +337,7 @@ fun ItemCard(item: Item, onEdit: (Item) -> Unit) {
                 Text(
                     item.name,
                     style = MaterialTheme.typography.titleSmall.copy(
-                        color = TextLight,
+                        color = NdomogColors.TextLight,
                         fontWeight = FontWeight.Bold
                     ),
                     maxLines = 1,
@@ -335,7 +346,7 @@ fun ItemCard(item: Item, onEdit: (Item) -> Unit) {
 
                 Text(
                     item.category ?: "Uncategorized",
-                    style = MaterialTheme.typography.labelSmall.copy(color = TextMuted),
+                    style = MaterialTheme.typography.labelSmall.copy(color = NdomogColors.TextMuted),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 4.dp)
@@ -351,14 +362,14 @@ fun ItemCard(item: Item, onEdit: (Item) -> Unit) {
                     Column {
                         Text(
                             "Qty: ${item.quantity}",
-                            style = MaterialTheme.typography.bodySmall.copy(color = TextLight),
+                            style = MaterialTheme.typography.bodySmall.copy(color = NdomogColors.TextLight),
                             fontWeight = FontWeight.SemiBold
                         )
-                        if (item.sellingPrice != null) {
+                        if (item.sellingPrice != null && item.sellingPrice > 0) {
                             Text(
-                                "₦${item.sellingPrice}",
+                                "KES ${item.sellingPrice.toInt()}",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    color = AmberPrimary,
+                                    color = NdomogColors.Primary,
                                     fontWeight = FontWeight.Bold
                                 )
                             )
@@ -371,7 +382,7 @@ fun ItemCard(item: Item, onEdit: (Item) -> Unit) {
                         Icon(
                             Icons.Filled.Edit,
                             contentDescription = "Edit",
-                            tint = AmberPrimary,
+                            tint = NdomogColors.Primary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
