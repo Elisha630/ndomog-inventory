@@ -1,12 +1,13 @@
 package com.ndomog.inventory
 
+import com.ndomog.inventory.data.local.MIGRATION_1_2 // Added import
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import androidx.room.Room
 import com.ndomog.inventory.data.local.NdomogDatabase
-import com.ndomog.inventory.data.repository.AuthRepository // Added import
+import com.ndomog.inventory.data.repository.AuthRepository
 import timber.log.Timber
 
 class NdomogApplication : Application() {
@@ -16,13 +17,14 @@ class NdomogApplication : Application() {
         const val NOTIFICATION_CHANNEL_NAME = "Inventory Updates"
     }
 
-    // Database instance
+// Database instance
     val database: NdomogDatabase by lazy {
         Room.databaseBuilder(
             applicationContext,
             NdomogDatabase::class.java,
             "ndomog_inventory.db"
-        ).build()
+        ).addMigrations(MIGRATION_1_2) // Added migration
+            .build()
     }
 
     // AuthRepository instance

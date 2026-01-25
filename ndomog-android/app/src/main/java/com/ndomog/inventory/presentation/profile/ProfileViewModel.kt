@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class ProfileViewModel(
     private val authRepository: AuthRepository,
@@ -52,17 +53,26 @@ class ProfileViewModel(
                     }
 
                     // Then fetch from remote (Supabase)
-                    val (data, error) = SupabaseClient.client.from("profiles").select()
-                        .eq("id", userId).single().execute()
-                    if (error != null) {
-                        throw error
+                    try {
+                        val profiles = SupabaseClient.client.from("profiles").select {
+                            filter {
+                                eq("id", userId)
+                            }
+                        }.decodeList<Profile>()
+                        
+                        if (profiles.isNotEmpty()) {
+                            val remoteProfile = profiles[0]
+                            _username.value = remoteProfile.username
+                            _avatarUrl.value = remoteProfile.avatarUrl
+                            profileDao.insertProfile(remoteProfile) // Cache the latest
+                        }
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to load remote profile")
+                        // Continue with locally cached profile if remote fetch fails
                     }
-                    val remoteProfile = data.decodeAs<Profile>()
-                    _username.value = remoteProfile.username
-                    _avatarUrl.value = remoteProfile.avatarUrl
-                    profileDao.insertProfile(remoteProfile) // Cache the latest
                 }
             } catch (e: Exception) {
+                Timber.e(e, "Failed to load profile")
                 _error.value = e.message ?: "Failed to load profile"
             } finally {
                 _isLoading.value = false
@@ -77,17 +87,17 @@ class ProfileViewModel(
             try {
                 val currentUser = authRepository.getCurrentUser()
                 currentUser?.id?.let { userId ->
-                    val (error) = SupabaseClient.client.from("profiles")
-                        .update(mapOf("username" to newUsername))
-                        .eq("id", userId)
-                        .execute()
-                    if (error != null) {
-                        throw error
-                    }
+                    SupabaseClient.client.from("profiles")
+                        .update(mapOf("username" to newUsername)) {
+                            filter {
+                                eq("id", userId)
+                            }
+                        }
                     _username.value = newUsername
                     profileDao.insertProfile(Profile(id = userId, email = _userEmail.value ?: "", username = newUsername, avatarUrl = _avatarUrl.value))
                 }
             } catch (e: Exception) {
+                Timber.e(e, "Failed to update username")
                 _error.value = e.message ?: "Failed to update username"
             } finally {
                 _isLoading.value = false

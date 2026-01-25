@@ -1,5 +1,6 @@
 package com.ndomog.inventory.presentation
 
+import com.ndomog.inventory.data.local.NdomogDatabase // Added import
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable

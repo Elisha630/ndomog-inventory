@@ -7,7 +7,7 @@ import com.ndomog.inventory.data.models.*
 
 @Database(
     entities = [Item::class, Category::class, Profile::class, PendingAction::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -1,0 +1,30 @@
+[
+    {
+        "merged": "com.ndomog.inventory.app-debug-4:/drawable-v24_ic_launcher_foreground.xml.flat",
+        "source": "com.ndomog.inventory.app-main-6:/drawable-v24/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.ndomog.inventory.app-debug-4:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.ndomog.inventory.app-main-6:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.ndomog.inventory.app-debug-4:/mipmap_ic_launcher_foreground.xml.flat",
+        "source": "com.ndomog.inventory.app-main-6:/mipmap/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.ndomog.inventory.app-debug-4:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.ndomog.inventory.app-main-6:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.ndomog.inventory.app-debug-4:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.ndomog.inventory.app-main-6:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.ndomog.inventory.app-debug-4:/xml_data_extraction_rules.xml.flat",
+        "source": "com.ndomog.inventory.app-main-6:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.ndomog.inventory.app-debug-4:/xml_backup_rules.xml.flat",
+        "source": "com.ndomog.inventory.app-main-6:/xml/backup_rules.xml"
+    }
+]

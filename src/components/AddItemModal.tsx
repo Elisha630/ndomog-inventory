@@ -272,10 +272,12 @@ const AddItemModal = ({ open, onClose, onSubmit, editItem, categories, existingI
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-popover border-border max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-slate-900 border-slate-800 max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-foreground">
-            <Package className="text-primary" size={20} />
+          <DialogTitle className="flex items-center gap-2 text-white text-2xl font-bold">
+            <div className="bg-gradient-to-br from-amber-400 to-amber-500 rounded-lg p-2">
+              <Package className="text-slate-900" size={20} />
+            </div>
             {editItem ? "Edit Item" : "Add New Item"}
           </DialogTitle>
         </DialogHeader>

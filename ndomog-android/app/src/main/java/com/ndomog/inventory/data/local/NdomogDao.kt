@@ -6,10 +6,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ItemDao {
-    @Query("SELECT * FROM items WHERE is_deleted = 0 ORDER BY created_at DESC")
+    @Query("SELECT * FROM items WHERE isDeleted = 0 ORDER BY createdAt DESC")
     fun getAllItems(): Flow<List<Item>>
 
-    @Query("SELECT * FROM items WHERE is_deleted = 0")
+    @Query("SELECT * FROM items WHERE isDeleted = 0")
     suspend fun getItems(): List<Item>
 
     @Query("SELECT * FROM items WHERE id = :id")
@@ -27,7 +27,7 @@ interface ItemDao {
     @Query("UPDATE items SET quantity = :quantity WHERE id = :id")
     suspend fun updateQuantity(id: String, quantity: Int)
 
-    @Query("UPDATE items SET is_deleted = 1, deleted_at = :deletedAt, deleted_by = :deletedBy WHERE id = :id")
+    @Query("UPDATE items SET isDeleted = 1, deletedAt = :deletedAt, deletedBy = :deletedBy WHERE id = :id")
     suspend fun softDelete(id: String, deletedAt: String, deletedBy: String)
 
     @Query("DELETE FROM items")

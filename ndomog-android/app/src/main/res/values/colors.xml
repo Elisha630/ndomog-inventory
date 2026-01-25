@@ -9,6 +9,7 @@
     <color name="white">#FFFFFFFF</color>
     
     <!-- Ndomog Colors (matching web app) -->
+    <color name="ic_launcher_background">#FFFFFF</color> <!-- Added for launcher icon -->
     <color name="primary">#F59E0B</color>
     <color name="primary_dark">#D97706</color>
     <color name="background_dark">#0F1419</color>

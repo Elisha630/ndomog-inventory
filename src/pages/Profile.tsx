@@ -466,47 +466,47 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-border">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-slate-800">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="text-slate-400 hover:text-white">
           <ArrowLeft size={20} />
         </Button>
-        <h1 className="font-semibold text-lg text-foreground">Profile Settings</h1>
+        <h1 className="font-bold text-lg text-white">Profile Settings</h1>
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-4">
         {/* Profile Card with Avatar, Username, and Email */}
-        <Card>
+        <Card className="bg-slate-900/60 border-slate-800">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4">
               {/* Clickable Avatar with dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="relative focus:outline-none group" disabled={uploadingAvatar}>
-                    <Avatar className="h-24 w-24 border-2 border-border cursor-pointer transition-opacity group-hover:opacity-80">
+                    <Avatar className="h-24 w-24 border-4 border-amber-400 cursor-pointer transition-opacity group-hover:opacity-80 shadow-lg">
                       <AvatarImage src={avatarUrl || undefined} alt={username || "User"} />
-                      <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                      <AvatarFallback className="text-2xl bg-gradient-to-br from-amber-400 to-amber-500 text-slate-900 font-bold">
                         {username ? username[0].toUpperCase() : userEmail?.[0]?.toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
                     {uploadingAvatar && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-full">
+                        <Loader2 className="h-6 w-6 animate-spin text-amber-400" />
                       </div>
                     )}
-                    <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 shadow-md">
-                      <Pencil size={12} />
+                    <div className="absolute bottom-0 right-0 bg-gradient-to-br from-amber-400 to-amber-500 text-slate-900 rounded-full p-2 shadow-lg">
+                      <Pencil size={14} className="font-bold" />
                     </div>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="center">
+                <DropdownMenuContent align="center" className="bg-slate-800 border-slate-700">
                   {avatarUrl && (
-                    <DropdownMenuItem onClick={() => setShowPhotoViewer(true)}>
+                    <DropdownMenuItem onClick={() => setShowPhotoViewer(true)} className="text-white">
                       <Eye className="mr-2" size={16} />
                       View Photo
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="text-white">
                     <Pencil className="mr-2" size={16} />
                     {avatarUrl ? "Change Photo" : "Upload Photo"}
                   </DropdownMenuItem>
@@ -533,7 +533,7 @@ const Profile = () => {
                           setNewUsername(e.target.value);
                           setUsernameError("");
                         }}
-                        className="bg-secondary border-border text-center"
+                        className="bg-slate-800 border-slate-700 text-white text-center placeholder-slate-500"
                         autoFocus
                       />
                       <Button
@@ -541,6 +541,7 @@ const Profile = () => {
                         variant="ghost"
                         onClick={cancelEditingUsername}
                         disabled={loadingUsername}
+                        className="text-slate-400 hover:text-white"
                       >
                         ✕
                       </Button>
@@ -548,6 +549,7 @@ const Profile = () => {
                         size="icon"
                         onClick={handleUpdateUsername}
                         disabled={loadingUsername || !newUsername.trim()}
+                        className="bg-gradient-to-br from-amber-400 to-amber-500 text-slate-900 hover:from-amber-300 hover:to-amber-400"
                       >
                         {loadingUsername ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -557,21 +559,21 @@ const Profile = () => {
                       </Button>
                     </div>
                     {usernameError && (
-                      <p className="text-sm text-destructive text-center">{usernameError}</p>
+                      <p className="text-sm text-red-400 text-center">{usernameError}</p>
                     )}
-                    <p className="text-xs text-muted-foreground text-center">
+                    <p className="text-xs text-slate-400 text-center">
                       3-20 characters, letters, numbers, underscores
                     </p>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2">
-                    <span className="text-lg font-medium text-foreground">
-                      {username ? `@${username}` : <span className="text-muted-foreground italic">No username</span>}
+                    <span className="text-2xl font-bold text-white">
+                      {username ? `@${username}` : <span className="text-slate-500 italic text-lg">No username</span>}
                     </span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 text-slate-400 hover:text-amber-400"
                       onClick={startEditingUsername}
                     >
                       <Pencil size={14} />
@@ -581,7 +583,7 @@ const Profile = () => {
               </div>
 
               {/* Email display */}
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-2 text-slate-400">
                 <Mail size={16} />
                 <span className="text-sm">{userEmail}</span>
               </div>
@@ -591,18 +593,18 @@ const Profile = () => {
 
         {/* Admin Section - Only visible to admins */}
         {isAdmin && (
-          <Card>
+          <Card className="bg-slate-900/60 border-slate-800">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Settings className="text-primary" size={18} />
+              <CardTitle className="flex items-center gap-2 text-base text-white">
+                <Settings className="text-amber-400" size={18} />
                 Admin Tools
               </CardTitle>
-              <CardDescription>Manage app settings and releases</CardDescription>
+              <CardDescription className="text-slate-400">Manage app settings and releases</CardDescription>
             </CardHeader>
             <CardContent>
               <Button
                 variant="secondary"
-                className="w-full justify-start"
+                className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-white"
                 onClick={() => navigate("/admin/releases")}
               >
                 <Download className="mr-2" size={16} />
@@ -613,27 +615,27 @@ const Profile = () => {
         )}
 
         {/* Account Security - Email & Password combined */}
-        <Card>
+        <Card className="bg-slate-900/60 border-slate-800">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Lock className="text-primary" size={18} />
+            <CardTitle className="flex items-center gap-2 text-base text-white">
+              <Lock className="text-amber-400" size={18} />
               Account Security
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Email Change */}
             {showEmailChange ? (
-              <div className="space-y-3 p-3 bg-secondary/50 rounded-lg">
-                <Label htmlFor="newEmail" className="text-sm">New Email Address</Label>
+              <div className="space-y-3 p-3 bg-slate-800/50 rounded-lg">
+                <Label htmlFor="newEmail" className="text-sm text-white">New Email Address</Label>
                 <Input
                   id="newEmail"
                   type="email"
                   placeholder="Enter new email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  className="bg-background border-border"
+                  className="bg-slate-800 border-slate-700 text-white placeholder-slate-500"
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-400">
                   A verification email will be sent to your new address.
                 </p>
                 <div className="flex gap-2">
@@ -644,6 +646,7 @@ const Profile = () => {
                       setShowEmailChange(false);
                       setNewEmail("");
                     }}
+                    className="bg-slate-700 hover:bg-slate-600 text-white"
                   >
                     Cancel
                   </Button>
@@ -651,6 +654,7 @@ const Profile = () => {
                     size="sm"
                     onClick={handleUpdateEmail}
                     disabled={loadingEmail}
+                    className="bg-gradient-to-br from-amber-400 to-amber-500 text-slate-900 hover:from-amber-300 hover:to-amber-400"
                   >
                     {loadingEmail ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -664,7 +668,7 @@ const Profile = () => {
             ) : (
               <Button
                 variant="secondary"
-                className="w-full justify-start"
+                className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-white"
                 onClick={() => setShowEmailChange(true)}
               >
                 <Mail className="mr-2" size={16} />
@@ -674,28 +678,28 @@ const Profile = () => {
 
             {/* Password Change */}
             {showPasswordChange ? (
-              <div className="space-y-3 p-3 bg-secondary/50 rounded-lg">
+              <div className="space-y-3 p-3 bg-slate-800/50 rounded-lg">
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword" className="text-sm">New Password</Label>
+                  <Label htmlFor="newPassword" className="text-sm text-white">New Password</Label>
                   <Input
                     id="newPassword"
                     type="password"
                     placeholder="Enter new password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="bg-background border-border"
+                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-500"
                     minLength={6}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-sm">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword" className="text-sm text-white">Confirm Password</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
                     placeholder="Confirm new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="bg-background border-border"
+                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-500"
                     minLength={6}
                   />
                 </div>
@@ -708,6 +712,7 @@ const Profile = () => {
                       setNewPassword("");
                       setConfirmPassword("");
                     }}
+                    className="bg-slate-700 hover:bg-slate-600 text-white"
                   >
                     Cancel
                   </Button>
@@ -715,6 +720,7 @@ const Profile = () => {
                     size="sm"
                     onClick={handleUpdatePassword}
                     disabled={loadingPassword}
+                    className="bg-gradient-to-br from-amber-400 to-amber-500 text-slate-900 hover:from-amber-300 hover:to-amber-400"
                   >
                     {loadingPassword ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -728,7 +734,7 @@ const Profile = () => {
             ) : (
               <Button
                 variant="secondary"
-                className="w-full justify-start"
+                className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-white"
                 onClick={() => setShowPasswordChange(true)}
               >
                 <Lock className="mr-2" size={16} />
@@ -739,18 +745,18 @@ const Profile = () => {
         </Card>
 
         {/* PIN Lock Settings */}
-        <Card>
+        <Card className="bg-slate-900/60 border-slate-800">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Shield className="text-primary" size={18} />
+            <CardTitle className="flex items-center gap-2 text-base text-white">
+              <Shield className="text-amber-400" size={18} />
               PIN Lock
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">Enable PIN Lock</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm font-medium text-white">Enable PIN Lock</p>
+                <p className="text-xs text-slate-400">
                   Require a PIN to access the app
                 </p>
               </div>
@@ -765,7 +771,7 @@ const Profile = () => {
                 <Button
                   variant="secondary"
                   onClick={() => setShowPinSetup(true)}
-                  className="w-full"
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-white"
                 >
                   <Lock className="mr-2" size={16} />
                   Change PIN
@@ -773,13 +779,13 @@ const Profile = () => {
 
                 {/* Biometric Option */}
                 {biometricAvailable && (
-                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-700">
                     <div>
-                      <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                        <Fingerprint size={16} className="text-primary" />
+                      <p className="text-sm font-medium text-white flex items-center gap-2">
+                        <Fingerprint size={16} className="text-amber-400" />
                         {biometricService.getBiometryTypeName(biometryType)}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-slate-400">
                         Use biometrics as an alternative to PIN
                       </p>
                     </div>
@@ -795,10 +801,10 @@ const Profile = () => {
         </Card>
 
         {/* Accessibility Settings */}
-        <Card>
+        <Card className="bg-slate-900/60 border-slate-800">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Type className="text-primary" size={18} />
+            <CardTitle className="flex items-center gap-2 text-base text-white">
+              <Type className="text-amber-400" size={18} />
               Accessibility
             </CardTitle>
           </CardHeader>
@@ -807,13 +813,13 @@ const Profile = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {themeMode === "dark" ? (
-                  <Moon size={16} className="text-primary" />
+                  <Moon size={16} className="text-amber-400" />
                 ) : (
-                  <Sun size={16} className="text-primary" />
+                  <Sun size={16} className="text-amber-400" />
                 )}
                 <div>
-                  <p className="text-sm font-medium text-foreground">Dark Mode</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-medium text-white">Dark Mode</p>
+                  <p className="text-xs text-slate-400">
                     {themeMode === "dark" ? "Currently using dark theme" : "Currently using light theme"}
                   </p>
                 </div>
@@ -825,12 +831,12 @@ const Profile = () => {
             </div>
 
             {/* High Contrast Toggle */}
-            <div className="flex items-center justify-between pt-2 border-t border-border">
+            <div className="flex items-center justify-between pt-2 border-t border-slate-700">
               <div className="flex items-center gap-2">
-                <Contrast size={16} className="text-primary" />
+                <Contrast size={16} className="text-amber-400" />
                 <div>
-                  <p className="text-sm font-medium text-foreground">High Contrast</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-medium text-white">High Contrast</p>
+                  <p className="text-xs text-slate-400">
                     Increase color contrast for visibility
                   </p>
                 </div>
@@ -842,13 +848,13 @@ const Profile = () => {
             </div>
 
             {/* Text Size Slider */}
-            <div className="space-y-3 pt-2 border-t border-border">
+            <div className="space-y-3 pt-2 border-t border-slate-700">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-foreground">Text Size</p>
-                <span className="text-sm text-muted-foreground">{textSizeLabels[textSize]}</span>
+                <p className="text-sm font-medium text-white">Text Size</p>
+                <span className="text-sm text-slate-400">{textSizeLabels[textSize]}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">A</span>
+                <span className="text-xs text-slate-400">A</span>
                 <Slider
                   value={[textSizeIndex]}
                   min={0}
@@ -857,9 +863,9 @@ const Profile = () => {
                   onValueChange={(value) => setTextSize(textSizeOptions[value[0]])}
                   className="flex-1"
                 />
-                <span className="text-lg font-medium text-muted-foreground">A</span>
+                <span className="text-lg font-medium text-slate-400">A</span>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-slate-400">
                 Adjust text size for better readability
               </p>
             </div>
@@ -867,10 +873,10 @@ const Profile = () => {
         </Card>
 
         {/* App Management */}
-        <Card>
+        <Card className="bg-slate-900/60 border-slate-800">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FolderOpen className="text-primary" size={18} />
+            <CardTitle className="flex items-center gap-2 text-base text-white">
+              <FolderOpen className="text-amber-400" size={18} />
               App Management
             </CardTitle>
           </CardHeader>
@@ -879,7 +885,7 @@ const Profile = () => {
             <Button
               variant="secondary"
               onClick={() => navigate("/categories")}
-              className="w-full justify-start"
+              className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-white"
             >
               <FolderOpen className="mr-2" size={16} />
               Manage Categories
@@ -890,7 +896,7 @@ const Profile = () => {
               <Button
                 variant="secondary"
                 onClick={() => navigate("/admin/users")}
-                className="w-full justify-start"
+                className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-white"
               >
                 <Bell className="mr-2" size={16} />
                 Manage Users
@@ -978,12 +984,12 @@ const Profile = () => {
         </Card>
 
         {/* Logout */}
-        <Card className="border-destructive/30">
+        <Card className="border-red-900/30 bg-slate-900/60">
           <CardContent className="pt-6">
             <Button
               variant="destructive"
               onClick={handleLogout}
-              className="w-full"
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
             >
               <LogOut className="mr-2" size={16} />
               Sign Out
@@ -991,7 +997,7 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-xs text-slate-500 text-center">
           Note: Only 5 email accounts can access this inventory.
         </p>
 

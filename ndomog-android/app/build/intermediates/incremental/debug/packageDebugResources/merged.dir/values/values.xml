@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background_dark">#0F1419</color>
+    <color name="black">#FF000000</color>
+    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="primary">#F59E0B</color>
+    <color name="primary_dark">#D97706</color>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="surface_dark">#1A1F26</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="white">#FFFFFFFF</color>
+    <string name="add_item">Add Item</string>
+    <string name="app_name">Ndomog</string>
+    <string name="buying_price">Buying Price</string>
+    <string name="cancel">Cancel</string>
+    <string name="categories">Categories</string>
+    <string name="category">Category</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="delete">Delete</string>
+    <string name="details">Details</string>
+    <string name="edit">Edit</string>
+    <string name="email">Email</string>
+    <string name="error_auth">Authentication failed</string>
+    <string name="error_generic">An error occurred</string>
+    <string name="error_network">Network error</string>
+    <string name="error_required_field">This field is required</string>
+    <string name="item_name">Item Name</string>
+    <string name="low_stock_threshold">Low Stock Threshold</string>
+    <string name="offline">Offline</string>
+    <string name="online">Online</string>
+    <string name="password">Password</string>
+    <string name="pending_actions">%d pending actions</string>
+    <string name="profile">Profile</string>
+    <string name="quantity">Quantity</string>
+    <string name="save">Save</string>
+    <string name="search">Search</string>
+    <string name="selling_price">Selling Price</string>
+    <string name="sign_in">Sign In</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="sync">Sync</string>
+    <string name="sync_complete">Sync Complete</string>
+    <string name="syncing">Syncing…</string>
+    <style name="Theme.Ndomog" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/purple_700</item>
+    </style>
+</resources>

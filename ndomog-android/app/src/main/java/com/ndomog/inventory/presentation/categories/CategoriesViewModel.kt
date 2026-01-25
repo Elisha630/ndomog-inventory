@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class CategoriesViewModel(
     private val categoryDao: CategoryDao,
@@ -60,11 +61,12 @@ class CategoriesViewModel(
             _error.value = null
             try {
                 // Update items with the new category name
-                val (error) = SupabaseClient.client.from("items")
-                    .update(mapOf("category" to newName.uppercase()))
-                    .eq("category", oldName)
-                    .execute()
-                if (error != null) throw error
+                SupabaseClient.client.from("items")
+                    .update(mapOf("category" to newName.uppercase())) {
+                        filter {
+                            eq("category", oldName)
+                        }
+                    }
 
                 // Update category in local DB (if exists)
                 val existingCategory = categoryDao.getCategories().firstOrNull { it.name == oldName }
@@ -75,6 +77,7 @@ class CategoriesViewModel(
                 
                 loadCategories(true) // Refresh from Supabase to get latest
             } catch (e: Exception) {
+                Timber.e(e, "Failed to rename category")
                 _error.value = e.message ?: "Failed to rename category"
             } finally {
                 _isLoading.value = false
@@ -88,21 +91,24 @@ class CategoriesViewModel(
             _error.value = null
             try {
                 // Delete all items in this category
-                val (error) = SupabaseClient.client.from("items")
-                    .delete()
-                    .eq("category", categoryName)
-                    .execute()
-                if (error != null) throw error
+                SupabaseClient.client.from("items")
+                    .delete {
+                        filter {
+                            eq("category", categoryName)
+                        }
+                    }
 
                 // Delete the category itself from remote
-                val (categoryDeleteError) = SupabaseClient.client.from("categories")
-                    .delete()
-                    .eq("name", categoryName)
-                    .execute()
-                // Ignore if category not found in remote (might only exist in items)
+                SupabaseClient.client.from("categories")
+                    .delete {
+                        filter {
+                            eq("name", categoryName)
+                        }
+                    }
                 
                 loadCategories(true) // Refresh from Supabase to get latest
             } catch (e: Exception) {
+                Timber.e(e, "Failed to delete category")
                 _error.value = e.message ?: "Failed to delete category"
             } finally {
                 _isLoading.value = false

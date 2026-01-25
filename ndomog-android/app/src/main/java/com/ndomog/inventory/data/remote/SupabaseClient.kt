@@ -8,6 +8,8 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 
+import kotlin.time.Duration.Companion.seconds // Added import
+
 object SupabaseClient {
     val client = createSupabaseClient(
         supabaseUrl = BuildConfig.SUPABASE_URL,
@@ -21,7 +23,7 @@ object SupabaseClient {
         install(Postgrest)
         install(Realtime)
         install(Storage) {
-            transferTimeout = 90000
+            transferTimeout = 90.seconds // Changed to Duration literal
         }
     }
 }
