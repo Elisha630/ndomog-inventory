@@ -7,11 +7,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -149,57 +148,57 @@ fun DashboardScreen(
                         }
                     }
                 } else {
-                    Column(
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier
                             .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
+                            .padding(16.dp),
+                        contentPadding = PaddingValues(0.dp)
                     ) {
-                        // Stats Cards (matching web StatsCards component)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 24.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            StatsCard(
-                                title = "Total Items",
-                                value = items.size.toString(),
-                                icon = Icons.Filled.ShoppingCart,
-                                modifier = Modifier.weight(1f)
-                            )
-                            StatsCard(
-                                title = "Categories",
-                                value = items.distinctBy { it.category }.size.toString(),
-                                icon = Icons.Filled.Category,
-                                modifier = Modifier.weight(1f)
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            // Stats Cards (matching web StatsCards component)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 24.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                StatsCard(
+                                    title = "Total Items",
+                                    value = items.size.toString(),
+                                    icon = Icons.Filled.ShoppingCart,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                StatsCard(
+                                    title = "Categories",
+                                    value = items.distinctBy { it.category }.size.toString(),
+                                    icon = Icons.Filled.Category,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            Text(
+                                "Inventory Items",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    color = NdomogColors.TextLight,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                modifier = Modifier.padding(bottom = 12.dp)
                             )
                         }
 
-                        Text(
-                            "Inventory Items",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                color = NdomogColors.TextLight,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
-
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(items) { item ->
-                                ItemCard(
-                                    item = item,
-                                    onEdit = {
-                                        itemToEdit = item
-                                        showAddEditDialog = true
-                                    }
-                                )
-                            }
+                        items(items) { item ->
+                            ItemCard(
+                                item = item,
+                                onEdit = {
+                                    itemToEdit = item
+                                    showAddEditDialog = true
+                                }
+                            )
                         }
                     }
                 }

@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.ndomog.inventory.app-mergeDebugResources-2:/values-watch-v21/values-watch-v21.xml",
+            "outputFile": "com.ndomog.inventory.app-mergeDebugResources-72:/values-watch-v21/values-watch-v21.xml",
             "map": [
                 {
-                    "source": "/root/.gradle/caches/9.0-milestone-1/transforms/6ac32e50922499e04369a7b379a94845/transformed/appcompat-1.6.1/res/values-watch-v21/values-watch-v21.xml",
+                    "source": "/home/zer0day/.gradle/caches/9.0-milestone-1/transforms/6ac32e50922499e04369a7b379a94845/transformed/appcompat-1.6.1/res/values-watch-v21/values-watch-v21.xml",
                     "from": {
                         "startLines": "2,6,10",
                         "startColumns": "4,4,4",
