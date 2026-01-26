@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.room.Room
 import com.ndomog.inventory.data.local.NdomogDatabase
 import com.ndomog.inventory.data.repository.AuthRepository
+import com.ndomog.inventory.data.remote.SupabaseClient
 import timber.log.Timber
 
 class NdomogApplication : Application() {
@@ -35,6 +36,9 @@ class NdomogApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Initialize Supabase with Android context for proper session persistence
+        SupabaseClient.initialize(applicationContext)
 
         // Initialize Timber for logging
         if (BuildConfig.DEBUG) {

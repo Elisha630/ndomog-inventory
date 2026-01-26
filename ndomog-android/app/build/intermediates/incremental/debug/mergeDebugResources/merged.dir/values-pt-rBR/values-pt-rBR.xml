@@ -41,6 +41,7 @@
     <string msgid="406453423630273620" name="close_drawer">"Fechar menu de navegação"</string>
     <string msgid="7573152094250666567" name="close_sheet">"Fechar planilha"</string>
     <string msgid="5389587048670450460" name="collapsed">"Fechado"</string>
+    <string msgid="5912733858573823945" name="confirm_device_credential_password">"Usar senha"</string>
     <string msgid="3260749812566568062" name="copy_toast_msg">"Link copiado para a área de transferência"</string>
     <string msgid="3499643850558715142" name="date_input_headline">"Data inserida"</string>
     <string msgid="8562356184193964298" name="date_input_headline_description">"Data inserida: %1$s"</string>
@@ -74,6 +75,7 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"Data de início"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"Selecionar datas"</string>
     <string msgid="8038256446254964252" name="default_error_message">"Entrada inválida"</string>
+    <string msgid="4776854077120974966" name="default_error_msg">"Erro desconhecido"</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"Janela pop-up"</string>
     <string msgid="4057925834421392736" name="dialog">"Caixa de diálogo"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"Menu suspenso"</string>
@@ -81,6 +83,16 @@
     <string msgid="4566929209979330987" name="fallback_menu_item_copy_link">"Copiar link"</string>
     <string msgid="3413186855122069269" name="fallback_menu_item_open_in_browser">"Abrir no navegador"</string>
     <string msgid="7145444925855055364" name="fallback_menu_item_share_link">"Compartilhar link"</string>
+    <string msgid="1072308044213194243" name="fingerprint_dialog_touch_sensor">"Toque no sensor de digital"</string>
+    <string msgid="8216738333501875566" name="fingerprint_error_hw_not_available">"Hardware de impressão digital não disponível."</string>
+    <string msgid="6306988885793029438" name="fingerprint_error_hw_not_present">"Este dispositivo não tem um sensor de impressão digital"</string>
+    <string msgid="7291787166416782245" name="fingerprint_error_lockout">"Muitas tentativas. Tente novamente mais tarde."</string>
+    <string msgid="7520712796891883488" name="fingerprint_error_no_fingerprints">"Nenhuma impressão digital registrada."</string>
+    <string msgid="7627716295344353987" name="fingerprint_error_user_canceled">"Operação de impressão digital cancelada pelo usuário."</string>
+    <string msgid="3873359464293253009" name="fingerprint_not_recognized">"Não reconhecido"</string>
+    <string msgid="3791785319221634505" name="generic_error_no_device_credential">"Nenhum PIN, padrão ou senha configurado."</string>
+    <string msgid="1807436368654974044" name="generic_error_no_keyguard">"Este dispositivo não é compatível com PIN, padrão ou senha."</string>
+    <string msgid="7309881387583143581" name="generic_error_user_canceled">"Autenticação cancelada pelo usuário."</string>
     <string msgid="6827826412747255547" name="in_progress">"Em andamento"</string>
     <string msgid="7933458017204019916" name="indeterminate">"Parcialmente selecionada"</string>
     <string msgid="542007171693138492" name="navigation_menu">"Menu de navegação"</string>

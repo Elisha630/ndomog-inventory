@@ -2,6 +2,7 @@ package com.ndomog.inventory.presentation
 
 import com.ndomog.inventory.data.local.NdomogDatabase
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -32,8 +33,13 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel(factory = ViewModelFactory(authRepository, database))
+    
+    // Determine the start destination based on authentication state
+    val startDestination = remember {
+        if (authRepository.isLoggedIn()) Routes.DASHBOARD else Routes.LOGIN
+    }
 
-    NavHost(navController = navController, startDestination = Routes.LOGIN) {
+    NavHost(navController = navController, startDestination = startDestination) {
         composable(Routes.LOGIN) {
             LoginScreen(authViewModel = authViewModel) {
                 navController.navigate(Routes.DASHBOARD) {

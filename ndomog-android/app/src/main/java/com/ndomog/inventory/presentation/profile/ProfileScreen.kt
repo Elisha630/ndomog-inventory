@@ -57,6 +57,25 @@ import kotlinx.coroutines.launch
 private const val APP_VERSION = "1.2.3"
 private const val BUILD_NUMBER = "42"
 
+/**
+ * Format error messages to be user-friendly
+ */
+private fun formatErrorMessage(error: String): String {
+    return when {
+        error.contains("Unexpected JSON token", ignoreCase = true) -> 
+            "Failed to fetch app releases. Please try again later."
+        error.contains("No releases found", ignoreCase = true) -> 
+            "No app releases available."
+        error.contains("Failed to check for updates", ignoreCase = true) -> 
+            "Unable to check for updates. Please check your connection."
+        error.contains("Connection", ignoreCase = true) -> 
+            "Network connection error. Please check your internet connection."
+        error.isEmpty() -> 
+            "An unknown error occurred."
+        else -> error
+    }
+}
+
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -266,7 +285,7 @@ fun ProfileScreen(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        "Error: $error",
+                        "Error: ${formatErrorMessage(error!!)}",
                         color = NdomogColors.ErrorText,
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodySmall

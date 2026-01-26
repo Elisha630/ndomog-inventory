@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.ndomog.inventory.app-mergeDebugResources-72:/values-v22/values-v22.xml",
+            "outputFile": "com.ndomog.inventory.app-mergeDebugResources-73:/values-v22/values-v22.xml",
             "map": [
                 {
                     "source": "/home/zer0day/.gradle/caches/9.0-milestone-1/transforms/6ac32e50922499e04369a7b379a94845/transformed/appcompat-1.6.1/res/values-v22/values-v22.xml",

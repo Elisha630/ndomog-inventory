@@ -41,6 +41,7 @@
     <string msgid="406453423630273620" name="close_drawer">"Закрити меню навігації"</string>
     <string msgid="7573152094250666567" name="close_sheet">"Закрити аркуш"</string>
     <string msgid="5389587048670450460" name="collapsed">"Згорнуто"</string>
+    <string msgid="5912733858573823945" name="confirm_device_credential_password">"Ввести пароль"</string>
     <string msgid="3260749812566568062" name="copy_toast_msg">"Посилання скопійовано в буфер обміну"</string>
     <string msgid="3499643850558715142" name="date_input_headline">"Введена дата"</string>
     <string msgid="8562356184193964298" name="date_input_headline_description">"Введена дата: %1$s"</string>
@@ -74,6 +75,7 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"Дата початку"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"Виберіть дати"</string>
     <string msgid="8038256446254964252" name="default_error_message">"Введено недійсні дані"</string>
+    <string msgid="4776854077120974966" name="default_error_msg">"Невідома помилка"</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"Спливаюче вікно"</string>
     <string msgid="4057925834421392736" name="dialog">"Вікно"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"Спадне меню"</string>
@@ -81,6 +83,16 @@
     <string msgid="4566929209979330987" name="fallback_menu_item_copy_link">"Копіювати посилання"</string>
     <string msgid="3413186855122069269" name="fallback_menu_item_open_in_browser">"Відкрити у веб-переглядачі"</string>
     <string msgid="7145444925855055364" name="fallback_menu_item_share_link">"Надіслати посилання"</string>
+    <string msgid="1072308044213194243" name="fingerprint_dialog_touch_sensor">"Торкніться сканера відбитків пальців"</string>
+    <string msgid="8216738333501875566" name="fingerprint_error_hw_not_available">"Сканер відбитків пальців недоступний."</string>
+    <string msgid="6306988885793029438" name="fingerprint_error_hw_not_present">"На цьому пристрої немає сканера відбитків пальців"</string>
+    <string msgid="7291787166416782245" name="fingerprint_error_lockout">"Забагато спроб. Зачекайте."</string>
+    <string msgid="7520712796891883488" name="fingerprint_error_no_fingerprints">"Відбитки пальців не зареєстровано."</string>
+    <string msgid="7627716295344353987" name="fingerprint_error_user_canceled">"Користувач скасував дію з відбитком пальця."</string>
+    <string msgid="3873359464293253009" name="fingerprint_not_recognized">"Не розпізнано"</string>
+    <string msgid="3791785319221634505" name="generic_error_no_device_credential">"Не вказано PIN-код, ключ або пароль."</string>
+    <string msgid="1807436368654974044" name="generic_error_no_keyguard">"Пристрій не підтримує PIN-код, ключ або пароль."</string>
+    <string msgid="7309881387583143581" name="generic_error_user_canceled">"Автентифікацію скасовано користувачем."</string>
     <string msgid="6827826412747255547" name="in_progress">"Виконується"</string>
     <string msgid="7933458017204019916" name="indeterminate">"Частково вибрано"</string>
     <string msgid="542007171693138492" name="navigation_menu">"Меню навігації"</string>

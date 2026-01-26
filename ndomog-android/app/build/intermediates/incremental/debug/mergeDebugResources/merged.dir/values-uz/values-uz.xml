@@ -41,6 +41,7 @@
     <string msgid="406453423630273620" name="close_drawer">"Navigatsiya menyusini yopish"</string>
     <string msgid="7573152094250666567" name="close_sheet">"Varaqni yopish"</string>
     <string msgid="5389587048670450460" name="collapsed">"Yigʻilgan"</string>
+    <string msgid="5912733858573823945" name="confirm_device_credential_password">"Paroldan foydalanish"</string>
     <string msgid="3260749812566568062" name="copy_toast_msg">"Havoladan vaqtinchalik xotiraga nusxa olindi"</string>
     <string msgid="3499643850558715142" name="date_input_headline">"Kiritilgan sana"</string>
     <string msgid="8562356184193964298" name="date_input_headline_description">"Kiritilgan sana: %1$s"</string>
@@ -74,6 +75,7 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"Boshlanish sanasi"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"Sanalarni tanlang"</string>
     <string msgid="8038256446254964252" name="default_error_message">"Kiritilgan axborot xato"</string>
+    <string msgid="4776854077120974966" name="default_error_msg">"Notanish xato"</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"Qalqib chiquvchi oyna"</string>
     <string msgid="4057925834421392736" name="dialog">"Muloqot oynasi"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"Pastga ochiluvchi menyu"</string>
@@ -81,6 +83,16 @@
     <string msgid="4566929209979330987" name="fallback_menu_item_copy_link">"Havoladan nusxa olish"</string>
     <string msgid="3413186855122069269" name="fallback_menu_item_open_in_browser">"Brauzerda ochish"</string>
     <string msgid="7145444925855055364" name="fallback_menu_item_share_link">"Havolani ulashish"</string>
+    <string msgid="1072308044213194243" name="fingerprint_dialog_touch_sensor">"Barmoq izi skaneriga tegining"</string>
+    <string msgid="8216738333501875566" name="fingerprint_error_hw_not_available">"Barmoq izi skaneri ish holatida emas."</string>
+    <string msgid="6306988885793029438" name="fingerprint_error_hw_not_present">"Bu qurilmada barmoq izi skaneri yo‘q"</string>
+    <string msgid="7291787166416782245" name="fingerprint_error_lockout">"Juda koʻp urinish amalga oshirildi. Keyinroq qaytadan urining."</string>
+    <string msgid="7520712796891883488" name="fingerprint_error_no_fingerprints">"Hech qanday barmoq izi qayd qilinmagan."</string>
+    <string msgid="7627716295344353987" name="fingerprint_error_user_canceled">"Barmoq izi amali foydalanuvchi tomonidan bekor qilindi"</string>
+    <string msgid="3873359464293253009" name="fingerprint_not_recognized">"Aniqlanmadi"</string>
+    <string msgid="3791785319221634505" name="generic_error_no_device_credential">"PIN kod, grafik kalit yoki parol sozlanmagan."</string>
+    <string msgid="1807436368654974044" name="generic_error_no_keyguard">"Bu qurilmada PIN kod, grafik kalit va parol ishlamaydi."</string>
+    <string msgid="7309881387583143581" name="generic_error_user_canceled">"Autentifikatsiya foydalanuvchi tomonidan bekor qilindi"</string>
     <string msgid="6827826412747255547" name="in_progress">"Bajarilmoqda"</string>
     <string msgid="7933458017204019916" name="indeterminate">"Qisman belgilandi"</string>
     <string msgid="542007171693138492" name="navigation_menu">"Navigatsiya menyusi"</string>

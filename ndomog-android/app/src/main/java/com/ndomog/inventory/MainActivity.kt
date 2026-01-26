@@ -16,7 +16,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.ndomog.inventory.presentation.AppNavigation
 import com.ndomog.inventory.presentation.auth.PinLockScreen
 import com.ndomog.inventory.presentation.theme.NdomogTheme
@@ -53,7 +52,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainAppContent(app)
+                    MainAppContent(app, this@MainActivity)
                 }
             }
         }
@@ -61,9 +60,8 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainAppContent(app: NdomogApplication) {
+fun MainAppContent(app: NdomogApplication, activity: MainActivity) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     val pinPreferences = remember { PinPreferences(context) }
     
     // Track if PIN is enabled and if the app is locked
@@ -79,7 +77,7 @@ fun MainAppContent(app: NdomogApplication) {
     }
     
     // Listen for app lifecycle to lock when returning from background
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(activity) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> {
@@ -94,9 +92,9 @@ fun MainAppContent(app: NdomogApplication) {
                 else -> {}
             }
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
+        activity.lifecycle.addObserver(observer)
         onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
+            activity.lifecycle.removeObserver(observer)
         }
     }
     

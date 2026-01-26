@@ -109,6 +109,12 @@ dependencies {
     // Activity Compose
     implementation("androidx.activity:activity-compose:1.8.2")
 
+    // Biometric authentication
+    implementation("androidx.biometric:biometric:1.1.0")
+
+    // AppCompat (required for some lifecycle features)
+    implementation("androidx.appcompat:appcompat:1.6.1")
+
     // DataStore (for preferences)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 

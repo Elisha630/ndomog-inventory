@@ -16,8 +16,8 @@ class AppReleaseService(private val coroutineScope: CoroutineScope) {
 
     // Current app version - should match versionCode in build.gradle
     companion object {
-        const val CURRENT_VERSION = "1.2.3"
-        const val CURRENT_VERSION_CODE = 123
+        const val CURRENT_VERSION = "1.0.0"
+        const val CURRENT_VERSION_CODE = 1
     }
 
     /**
@@ -114,6 +114,8 @@ data class AppRelease(
     val downloadUrl: String? = null,
     @SerialName("is_critical")
     val isCritical: Boolean = false,
+    @SerialName("release_date")
+    val releaseDate: String? = null,
     @SerialName("created_at")
     val createdAt: String? = null,
     @SerialName("updated_at")

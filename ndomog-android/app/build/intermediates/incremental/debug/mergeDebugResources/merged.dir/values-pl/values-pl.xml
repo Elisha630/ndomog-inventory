@@ -41,6 +41,7 @@
     <string msgid="406453423630273620" name="close_drawer">"Zamknij menu nawigacyjne"</string>
     <string msgid="7573152094250666567" name="close_sheet">"Zamknij arkusz"</string>
     <string msgid="5389587048670450460" name="collapsed">"Zwinięte"</string>
+    <string msgid="5912733858573823945" name="confirm_device_credential_password">"Użyj hasła"</string>
     <string msgid="3260749812566568062" name="copy_toast_msg">"Link skopiowany do schowka"</string>
     <string msgid="3499643850558715142" name="date_input_headline">"Wprowadzono datę"</string>
     <string msgid="8562356184193964298" name="date_input_headline_description">"Wprowadzono datę: %1$s"</string>
@@ -74,6 +75,7 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"Data początkowa"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"Wybierz daty"</string>
     <string msgid="8038256446254964252" name="default_error_message">"Nieprawidłowe dane wejściowe"</string>
+    <string msgid="4776854077120974966" name="default_error_msg">"Nieznany błąd"</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"Wyskakujące okienko"</string>
     <string msgid="4057925834421392736" name="dialog">"Dialog"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"Menu"</string>
@@ -81,6 +83,16 @@
     <string msgid="4566929209979330987" name="fallback_menu_item_copy_link">"Kopiuj link"</string>
     <string msgid="3413186855122069269" name="fallback_menu_item_open_in_browser">"Otwórz w przeglądarce"</string>
     <string msgid="7145444925855055364" name="fallback_menu_item_share_link">"Udostępnij link"</string>
+    <string msgid="1072308044213194243" name="fingerprint_dialog_touch_sensor">"Dotknij czytnika linii papilarnych"</string>
+    <string msgid="8216738333501875566" name="fingerprint_error_hw_not_available">"Czytnik linii papilarnych nie jest dostępny."</string>
+    <string msgid="6306988885793029438" name="fingerprint_error_hw_not_present">"To urządzenie nie jest wyposażone w czytnik linii papilarnych"</string>
+    <string msgid="7291787166416782245" name="fingerprint_error_lockout">"Zbyt wiele prób. Spróbuj ponownie później."</string>
+    <string msgid="7520712796891883488" name="fingerprint_error_no_fingerprints">"Nie zarejestrowano odcisków palców."</string>
+    <string msgid="7627716295344353987" name="fingerprint_error_user_canceled">"Odczyt odcisku palca został anulowany przez użytkownika."</string>
+    <string msgid="3873359464293253009" name="fingerprint_not_recognized">"Nie rozpoznano"</string>
+    <string msgid="3791785319221634505" name="generic_error_no_device_credential">"Nie ustawiono kodu PIN, wzoru ani hasła."</string>
+    <string msgid="1807436368654974044" name="generic_error_no_keyguard">"To urządzenie nie obsługuje kodu PIN, wzoru ani hasła."</string>
+    <string msgid="7309881387583143581" name="generic_error_user_canceled">"Użytkownik anulował uwierzytelnianie."</string>
     <string msgid="6827826412747255547" name="in_progress">"W toku"</string>
     <string msgid="7933458017204019916" name="indeterminate">"Częściowo zaznaczone"</string>
     <string msgid="542007171693138492" name="navigation_menu">"Menu nawigacyjne"</string>
