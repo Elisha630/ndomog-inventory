@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -36,10 +37,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.ndomog.inventory.data.models.Item
 import com.ndomog.inventory.di.ViewModelFactory
 import com.ndomog.inventory.presentation.theme.NdomogColors
-import com.ndomog.inventory.presentation.profile.ProfileViewModel
+import com.ndomog.inventory.data.remote.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,7 +51,6 @@ fun DashboardScreen(
     onLogout: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToCategories: () -> Unit,
-    onNavigateToActivity: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     viewModelFactory: ViewModelFactory,
     userAvatarUrl: String? = null,
@@ -63,6 +65,9 @@ fun DashboardScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val userAvatar by profileViewModel.avatarUrl.collectAsState()
+    val accessToken = remember {
+        SupabaseClient.client.auth.currentSessionOrNull()?.accessToken
+    }
 
     var showAddEditDialog by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<Item?>(null) }
@@ -141,14 +146,6 @@ fun DashboardScreen(
                     scrolledContainerColor = NdomogColors.DarkCard
                 ),
                 actions = {
-                    // Activity Icon
-                    IconButton(onClick = onNavigateToActivity) {
-                        Icon(
-                            Icons.Filled.ShowChart,
-                            contentDescription = "Activity",
-                            tint = NdomogColors.TextMuted
-                        )
-                    }
                     // Notification Icon
                     IconButton(onClick = onNavigateToNotifications) {
                         Icon(
@@ -161,8 +158,16 @@ fun DashboardScreen(
                     IconButton(onClick = onNavigateToProfile) {
                         val avatarUrl = userAvatar
                         if (avatarUrl != null && avatarUrl.isNotEmpty()) {
+                            val model = if (!accessToken.isNullOrBlank() && avatarUrl.contains("/storage/v1/object/")) {
+                                ImageRequest.Builder(LocalContext.current)
+                                    .data(avatarUrl)
+                                    .addHeader("Authorization", "Bearer $accessToken")
+                                    .build()
+                            } else {
+                                avatarUrl
+                            }
                             AsyncImage(
-                                model = avatarUrl,
+                                model = model,
                                 contentDescription = "Profile",
                                 modifier = Modifier
                                     .size(32.dp)
@@ -283,70 +288,15 @@ fun DashboardScreen(
                             categories = categories,
                             onCategorySelect = { selectedCategory = it },
                             showDropdown = showCategoryDropdown,
-                            onDropdownToggle = { showCategoryDropdown = it }
+                            onDropdownToggle = { showCategoryDropdown = it },
+                            bulkEditMode = bulkEditMode,
+                            onToggleBulkEdit = {
+                                bulkEditMode = !bulkEditMode
+                                if (!bulkEditMode) selectedItems = setOf()
+                            },
+                            selectedCount = selectedItems.size,
+                            onBulkUpdateClick = { showBulkUpdateDialog = true }
                         )
-                    }
-                    
-                    // Bulk Edit Button
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                onClick = {
-                                    bulkEditMode = !bulkEditMode
-                                    if (!bulkEditMode) selectedItems = setOf()
-                                },
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (bulkEditMode) NdomogColors.Primary else NdomogColors.DarkSecondary,
-                                border = BorderStroke(1.dp, NdomogColors.DarkBorder)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Layers,
-                                        contentDescription = null,
-                                        tint = if (bulkEditMode) NdomogColors.TextOnPrimary else NdomogColors.TextMuted,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        if (bulkEditMode) "Cancel" else "Bulk Edit",
-                                        color = if (bulkEditMode) NdomogColors.TextOnPrimary else NdomogColors.TextLight,
-                                        style = MaterialTheme.typography.labelMedium
-                                    )
-                                }
-                            }
-                            
-                            if (bulkEditMode && selectedItems.isNotEmpty()) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        "${selectedItems.size} selected",
-                                        color = NdomogColors.TextMuted,
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                    Surface(
-                                        onClick = { showBulkUpdateDialog = true },
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = NdomogColors.Primary
-                                    ) {
-                                        Text(
-                                            "Update Quantities",
-                                            color = NdomogColors.TextOnPrimary,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
                     }
 
                     if (filteredItems.isEmpty()) {
@@ -577,60 +527,24 @@ fun SearchBar(
     categories: List<String>,
     onCategorySelect: (String) -> Unit,
     showDropdown: Boolean,
-    onDropdownToggle: (Boolean) -> Unit
+    onDropdownToggle: (Boolean) -> Unit,
+    bulkEditMode: Boolean,
+    onToggleBulkEdit: () -> Unit,
+    selectedCount: Int,
+    onBulkUpdateClick: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Search Input
-        Surface(
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(8.dp),
-            color = NdomogColors.DarkSecondary,
-            border = BorderStroke(1.dp, NdomogColors.DarkBorder)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Filled.Search,
-                    contentDescription = null,
-                    tint = NdomogColors.TextMuted,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchChange,
-                    textStyle = TextStyle(
-                        color = NdomogColors.TextLight,
-                        fontSize = 14.sp
-                    ),
-                    cursorBrush = SolidColor(NdomogColors.Primary),
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box {
-                            if (searchQuery.isEmpty()) {
-                                Text(
-                                    "Search items or descriptions...",
-                                    color = NdomogColors.TextMuted,
-                                    fontSize = 14.sp
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
-            }
-        }
-        
-        // Category Dropdown
-        Box {
+            // Search Input
             Surface(
-                onClick = { onDropdownToggle(!showDropdown) },
+                modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(8.dp),
                 color = NdomogColors.DarkSecondary,
                 border = BorderStroke(1.dp, NdomogColors.DarkBorder)
@@ -639,41 +553,124 @@ fun SearchBar(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        if (selectedCategory == "all") "All Categories" else selectedCategory,
-                        color = NdomogColors.TextLight,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
                     Icon(
-                        Icons.Filled.KeyboardArrowDown,
+                        Icons.Filled.Search,
                         contentDescription = null,
                         tint = NdomogColors.TextMuted,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchChange,
+                        textStyle = TextStyle(
+                            color = NdomogColors.TextLight,
+                            fontSize = 14.sp
+                        ),
+                        cursorBrush = SolidColor(NdomogColors.Primary),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        decorationBox = { innerTextField ->
+                            Box {
+                                if (searchQuery.isEmpty()) {
+                                    Text(
+                                        "Search items or descriptions...",
+                                        color = NdomogColors.TextMuted,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        }
                     )
                 }
             }
-            
-            DropdownMenu(
-                expanded = showDropdown,
-                onDismissRequest = { onDropdownToggle(false) },
-                modifier = Modifier.background(NdomogColors.DarkCard)
+
+            // Bulk Edit Toggle (moved next to categories)
+            Surface(
+                onClick = onToggleBulkEdit,
+                shape = RoundedCornerShape(8.dp),
+                color = if (bulkEditMode) NdomogColors.Primary else NdomogColors.DarkSecondary,
+                border = BorderStroke(1.dp, NdomogColors.DarkBorder)
             ) {
-                DropdownMenuItem(
-                    text = { Text("All Categories", color = NdomogColors.TextLight) },
-                    onClick = {
-                        onCategorySelect("all")
-                        onDropdownToggle(false)
-                    }
-                )
-                categories.forEach { category ->
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Layers,
+                        contentDescription = null,
+                        tint = if (bulkEditMode) NdomogColors.TextOnPrimary else NdomogColors.TextMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        if (bulkEditMode) "Cancel" else "Bulk Edit",
+                        color = if (bulkEditMode) NdomogColors.TextOnPrimary else NdomogColors.TextLight,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
+
+            // Category Dropdown (icon-only)
+            Box {
+                IconButton(
+                    onClick = { onDropdownToggle(!showDropdown) }
+                ) {
+                    Icon(
+                        Icons.Filled.FilterList,
+                        contentDescription = "Filter Categories",
+                        tint = if (selectedCategory == "all") NdomogColors.TextMuted else NdomogColors.Primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showDropdown,
+                    onDismissRequest = { onDropdownToggle(false) },
+                    modifier = Modifier.background(NdomogColors.DarkCard)
+                ) {
                     DropdownMenuItem(
-                        text = { Text(category, color = NdomogColors.TextLight) },
+                        text = { Text("All Categories", color = NdomogColors.TextLight) },
                         onClick = {
-                            onCategorySelect(category)
+                            onCategorySelect("all")
                             onDropdownToggle(false)
                         }
+                    )
+                    categories.forEach { category ->
+                        DropdownMenuItem(
+                            text = { Text(category, color = NdomogColors.TextLight) },
+                            onClick = {
+                                onCategorySelect(category)
+                                onDropdownToggle(false)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        if (bulkEditMode && selectedCount > 0) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "$selectedCount selected",
+                    color = NdomogColors.TextMuted,
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Surface(
+                    onClick = onBulkUpdateClick,
+                    shape = RoundedCornerShape(8.dp),
+                    color = NdomogColors.Primary
+                ) {
+                    Text(
+                        "Update Quantities",
+                        color = NdomogColors.TextOnPrimary,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                     )
                 }
             }

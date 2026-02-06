@@ -14,7 +14,6 @@ import com.ndomog.inventory.di.ViewModelFactory
 import com.ndomog.inventory.presentation.categories.CategoriesScreen
 import com.ndomog.inventory.presentation.dashboard.DashboardScreen
 import com.ndomog.inventory.presentation.profile.ProfileScreen
-import com.ndomog.inventory.presentation.activity.ActivityScreen
 import com.ndomog.inventory.presentation.notifications.NotificationsScreen
 
 object Routes {
@@ -22,7 +21,6 @@ object Routes {
     const val DASHBOARD = "dashboard"
     const val PROFILE = "profile"
     const val CATEGORIES = "categories"
-    const val ACTIVITY = "activity"
     const val NOTIFICATIONS = "notifications"
 }
 
@@ -51,13 +49,13 @@ fun AppNavigation(
             val viewModelFactory = ViewModelFactory(authRepository, database)
             DashboardScreen(
                 onLogout = {
+                    authViewModel.onLoggedOut()
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.DASHBOARD) { inclusive = true }
                     }
                 },
                 onNavigateToProfile = { navController.navigate(Routes.PROFILE) },
                 onNavigateToCategories = { navController.navigate(Routes.CATEGORIES) },
-                onNavigateToActivity = { navController.navigate(Routes.ACTIVITY) },
                 onNavigateToNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                 viewModelFactory = viewModelFactory
             )
@@ -68,8 +66,9 @@ fun AppNavigation(
                 onBack = { navController.popBackStack() },
                 viewModelFactory = viewModelFactory,
                 onLogout = {
+                    authViewModel.onLoggedOut()
                     navController.navigate(Routes.LOGIN) {
-                        popUpTo(0) { inclusive = true }
+                        popUpTo(Routes.DASHBOARD) { inclusive = true }
                     }
                 }
             )
@@ -77,10 +76,6 @@ fun AppNavigation(
         composable(Routes.CATEGORIES) {
             val viewModelFactory = ViewModelFactory(authRepository, database)
             CategoriesScreen(onBack = { navController.popBackStack() }, viewModelFactory = viewModelFactory)
-        }
-        composable(Routes.ACTIVITY) {
-            val viewModelFactory = ViewModelFactory(authRepository, database)
-            ActivityScreen(onBack = { navController.popBackStack() }, viewModelFactory = viewModelFactory)
         }
         composable(Routes.NOTIFICATIONS) {
             val viewModelFactory = ViewModelFactory(authRepository, database)

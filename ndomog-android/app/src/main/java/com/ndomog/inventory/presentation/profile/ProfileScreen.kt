@@ -43,10 +43,13 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.ndomog.inventory.di.ViewModelFactory
 import com.ndomog.inventory.presentation.theme.NdomogColors
 import com.ndomog.inventory.utils.ThemePreferences
 import com.ndomog.inventory.utils.PinPreferences
+import com.ndomog.inventory.data.remote.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -99,16 +102,16 @@ fun ProfileScreen(
     val successMessage by viewModel.successMessage.collectAsState()
     val isAdmin by viewModel.isAdmin.collectAsState()
     val isLoggedOut by viewModel.isLoggedOut.collectAsState()
-    val updateAvailable by viewModel.updateAvailable.collectAsState()
-    val latestRelease by viewModel.latestRelease.collectAsState()
-
     var isEditingUsername by remember { mutableStateOf(false) }
     var newUsername by remember { mutableStateOf("") }
+
+    val accessToken = remember {
+        SupabaseClient.client.auth.currentSessionOrNull()?.accessToken
+    }
     
     // Dialogs
     var showChangePasswordDialog by remember { mutableStateOf(false) }
     var showPinSetupDialog by remember { mutableStateOf(false) }
-    var showVersionInfoDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showAvatarOptions by remember { mutableStateOf(false) }
     
@@ -156,11 +159,35 @@ fun ProfileScreen(
         return File.createTempFile("AVATAR_${timeStamp}_", ".jpg", storageDir)
     }
     
+    fun readBytesFromUri(uri: Uri): ByteArray? {
+        return try {
+            val contentResolver = context.contentResolver
+            contentResolver.openInputStream(uri)?.use { input ->
+                input.readBytes()
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun getImageExtension(uri: Uri): String {
+        val mimeType = context.contentResolver.getType(uri)
+        return when (mimeType) {
+            "image/png" -> "png"
+            "image/webp" -> "webp"
+            "image/jpeg" -> "jpg"
+            else -> "jpg"
+        }
+    }
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            viewModel.updateAvatar(it.toString())
+            val bytes = readBytesFromUri(it)
+            if (bytes != null) {
+                viewModel.updateAvatarBytes(bytes, getImageExtension(it))
+            }
         }
     }
     
@@ -168,7 +195,11 @@ fun ProfileScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && tempPhotoUri != null) {
-            viewModel.updateAvatar(tempPhotoUri.toString())
+            val uri = tempPhotoUri!!
+            val bytes = readBytesFromUri(uri)
+            if (bytes != null) {
+                viewModel.updateAvatarBytes(bytes, getImageExtension(uri))
+            }
         }
     }
     
@@ -336,8 +367,16 @@ fun ProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     if (avatarUrl != null && avatarUrl!!.isNotEmpty()) {
+                        val model = if (!accessToken.isNullOrBlank() && avatarUrl!!.contains("/storage/v1/object/")) {
+                            ImageRequest.Builder(context)
+                                .data(avatarUrl)
+                                .addHeader("Authorization", "Bearer $accessToken")
+                                .build()
+                        } else {
+                            avatarUrl
+                        }
                         AsyncImage(
-                            model = avatarUrl,
+                            model = model,
                             contentDescription = "Avatar",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
@@ -652,14 +691,6 @@ fun ProfileScreen(
                 icon = Icons.Filled.Settings,
                 items = listOf(
                     SettingItem(
-                        label = "Check for Updates",
-                        icon = Icons.Filled.Refresh,
-                        action = { 
-                            viewModel.checkForUpdates()
-                            showVersionInfoDialog = true
-                        }
-                    ),
-                    SettingItem(
                         label = "About This App",
                         icon = Icons.Filled.HelpOutline,
                         action = { showAboutDialog = true }
@@ -745,7 +776,7 @@ fun ProfileScreen(
                         TextButton(
                             onClick = {
                                 showAvatarOptions = false
-                                viewModel.updateAvatar("")
+                                viewModel.removeAvatar()
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -788,23 +819,6 @@ fun ProfileScreen(
                     pinPreferences.setPinEnabled(true)
                     // In a real app, hash the PIN before storing
                     pinPreferences.setPinHash(pin) // TODO: Use proper hashing
-                }
-            }
-        )
-    }
-    
-    // Version Info Dialog
-    if (showVersionInfoDialog) {
-        VersionInfoDialog(
-            currentVersion = APP_VERSION,
-            buildNumber = BUILD_NUMBER,
-            updateAvailable = updateAvailable,
-            latestVersion = latestRelease?.version,
-            onDismiss = { showVersionInfoDialog = false },
-            onCheckUpdates = { viewModel.checkForUpdates() },
-            onDownload = {
-                latestRelease?.downloadUrl?.let { url ->
-                    uriHandler.openUri(url)
                 }
             }
         )
@@ -1142,6 +1156,7 @@ fun VersionInfoDialog(
     buildNumber: String,
     updateAvailable: Boolean,
     latestVersion: String?,
+    updateError: String? = null,
     onDismiss: () -> Unit,
     onCheckUpdates: () -> Unit,
     onDownload: () -> Unit
@@ -1154,6 +1169,21 @@ fun VersionInfoDialog(
         },
         text = {
             Column {
+                if (updateError != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = NdomogColors.ErrorBackground),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            formatErrorMessage(updateError),
+                            color = NdomogColors.ErrorText,
+                            modifier = Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween

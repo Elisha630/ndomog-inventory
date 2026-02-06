@@ -22,7 +22,7 @@ class ViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
             modelClass.isAssignableFrom(AuthViewModel::class.java) -> {
-                AuthViewModel(authRepository) as T
+                AuthViewModel(authRepository, database.profileDao()) as T
             }
             modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
                 val itemRepository = ItemRepository(

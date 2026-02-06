@@ -22,8 +22,8 @@ android {
         }
 
         // Supabase configuration
-        buildConfigField("String", "SUPABASE_URL", "\"https://mienlzvjeyneepkxxnhs.supabase.co\"")
-        buildConfigField("String", "SUPABASE_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZW5senZqZXluZWVwa3h4bmhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1MDcwMjAsImV4cCI6MjA4MjA4MzAyMH0.eJVO_hUJhm_Ck_2uuo2chQCCJ3jhRVtHUCo8FKTiBXU\"")
+        buildConfigField("String", "SUPABASE_URL", "\"https://xatpuuwftjkxuwvretsu.supabase.co\"")
+        buildConfigField("String", "SUPABASE_KEY", "\"sb_publishable_WgDl8kETPW40K9jCqVHSag_iVpW_B_-\"")
     }
 
     buildTypes {

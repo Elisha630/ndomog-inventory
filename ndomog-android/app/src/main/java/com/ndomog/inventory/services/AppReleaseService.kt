@@ -24,10 +24,12 @@ class AppReleaseService(private val coroutineScope: CoroutineScope) {
      * Check if a new version is available
      * 
      * @param onUpdateAvailable Called when a new version is found
+     * @param onUpToDate Called when already on latest version
      * @param onError Called if an error occurs
      */
     fun checkForUpdates(
         onUpdateAvailable: (AppRelease) -> Unit,
+        onUpToDate: () -> Unit = {},
         onError: (String) -> Unit
     ) {
         coroutineScope.launch {
@@ -47,6 +49,8 @@ class AppReleaseService(private val coroutineScope: CoroutineScope) {
                 // Check if newer version exists
                 if (isVersionNewer(latestRelease.versionCode, CURRENT_VERSION_CODE)) {
                     onUpdateAvailable(latestRelease)
+                } else {
+                    onUpToDate()
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to check for updates")

@@ -34,6 +34,8 @@ fun LoginScreen(
 ) {
     val authState by authViewModel.authState.collectAsState()
     val loginState by authViewModel.loginState.collectAsState()
+    val usernameRequired by authViewModel.usernameRequired.collectAsState()
+    val usernameState by authViewModel.usernameState.collectAsState()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
@@ -41,10 +43,33 @@ fun LoginScreen(
     var showForgotPassword by remember { mutableStateOf(false) }
     var resetEmail by remember { mutableStateOf("") }
     var resetEmailSent by remember { mutableStateOf(false) }
+    var showUsernameDialog by remember { mutableStateOf(false) }
+    var usernameInput by remember { mutableStateOf("") }
+    var usernameError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) {
+            if (usernameRequired) {
+                showUsernameDialog = true
+            } else {
+                onLoginSuccess()
+            }
+        }
+    }
+    
+    LaunchedEffect(usernameRequired) {
+        if (usernameRequired) {
+            showUsernameDialog = true
+        }
+    }
+
+    LaunchedEffect(usernameState) {
+        if (usernameState is UsernameState.Success) {
+            showUsernameDialog = false
             onLoginSuccess()
+        }
+        if (usernameState is UsernameState.Error) {
+            usernameError = (usernameState as UsernameState.Error).message
         }
     }
 
@@ -497,5 +522,68 @@ fun LoginScreen(
                 }
             }
         }
+    }
+
+    if (showUsernameDialog) {
+        AlertDialog(
+            onDismissRequest = { /* Force username setup */ },
+            containerColor = NdomogColors.DarkCard,
+            title = { Text("Set Username", color = NdomogColors.TextLight) },
+            text = {
+                Column {
+                    Text(
+                        "Please set a username. This will be used in notifications.",
+                        color = NdomogColors.TextMuted
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = usernameInput,
+                        onValueChange = { 
+                            usernameInput = it
+                            usernameError = null
+                        },
+                        placeholder = { Text("e.g. ndomog_admin", color = NdomogColors.TextMuted.copy(alpha = 0.5f)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = NdomogColors.InputBorder,
+                            focusedBorderColor = NdomogColors.Primary,
+                            unfocusedContainerColor = NdomogColors.InputBackground.copy(alpha = 0.5f),
+                            focusedContainerColor = NdomogColors.InputBackground.copy(alpha = 0.5f),
+                            unfocusedTextColor = NdomogColors.TextLight,
+                            focusedTextColor = NdomogColors.TextLight,
+                            cursorColor = NdomogColors.Primary
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        singleLine = true
+                    )
+                    if (usernameError != null) {
+                        Text(
+                            usernameError!!,
+                            color = NdomogColors.Error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { authViewModel.setUsername(usernameInput.trim()) },
+                    enabled = usernameInput.isNotBlank() && usernameState !is UsernameState.Loading,
+                    colors = ButtonDefaults.buttonColors(containerColor = NdomogColors.Primary)
+                ) {
+                    if (usernameState is UsernameState.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = NdomogColors.TextOnPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Save", color = NdomogColors.TextOnPrimary, fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            dismissButton = {}
+        )
     }
 }
