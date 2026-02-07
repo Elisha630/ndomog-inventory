@@ -22,6 +22,7 @@ object SupabaseClient {
                 supabaseUrl = BuildConfig.SUPABASE_URL,
                 supabaseKey = BuildConfig.SUPABASE_KEY
             ) {
+                defaultSerializer = io.github.jan.supabase.serializer.KotlinXSerializer(json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true })
                 install(Auth) {
                     flowType = FlowType.PKCE
                     scheme = "com.ndomog.app"

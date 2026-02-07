@@ -97,10 +97,11 @@ class ProfileViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
+            Timber.d("loadUserProfile started")
             try {
                 var currentUser = authRepository.getCurrentUser()
                 if (currentUser == null) {
-                    // Auth session may not be ready yet (fresh install/new APK)
+                    Timber.d("currentUser is null, waiting 1s for auth session.")
                     kotlinx.coroutines.delay(1000) // Increased delay
                     currentUser = authRepository.getCurrentUser()
                 }
@@ -108,20 +109,24 @@ class ProfileViewModel(
                 if (currentUser == null) {
                     _error.value = "User not logged in. Please restart the app."
                     _isLoading.value = false
+                    Timber.e("currentUser is still null after delay.")
                     return@launch
                 }
 
                 val email = currentUser.email ?: authRepository.getEmailFromSession()
                 _userEmail.value = email
                 val userId = currentUser.id
+                Timber.d("User found: $userId, email: $email")
 
                 // Prioritize remote fetch
                 try {
+                    Timber.d("Attempting to fetch remote profile for user $userId")
                     val remoteProfile = SupabaseClient.client.from("profiles").select {
                         filter { eq("id", userId) }
                     }.decodeList<Profile>().firstOrNull()
 
                     if (remoteProfile != null) {
+                        Timber.d("Remote profile found for user $userId.")
                         // Remote fetch successful, update state and cache
                         _username.value = remoteProfile.username
                         _avatarUrl.value = remoteProfile.avatarUrl
@@ -129,63 +134,76 @@ class ProfileViewModel(
                         profileDao.insertProfile(remoteProfile)
                         Timber.d("Successfully loaded remote profile and updated cache.")
                     } else {
+                        Timber.d("Remote profile not found for user $userId. Checking local cache.")
                         // Profile doesn't exist on remote, try local cache or create it
                         val localProfile = profileDao.getProfileById(userId)
                         if (localProfile != null) {
                             _username.value = localProfile.username
                             _avatarUrl.value = localProfile.avatarUrl
-                            Timber.d("Remote profile not found, loaded from local cache.")
+                            Timber.d("Loaded profile from local cache for user $userId.")
                         } else {
-                            Timber.d("No remote or local profile found, creating a new one.")
+                            Timber.d("No remote or local profile found, creating a new one for user $userId.")
                             ensureProfileExists(userId, email ?: "")
                         }
                     }
                 } catch (e: Exception) {
-                    Timber.e(e, "Failed to load remote profile. Attempting to load from local cache.")
+                    Timber.e(e, "Failed to load remote profile for user $userId.")
                     // Remote fetch failed, try to load from local cache
                     val localProfile = profileDao.getProfileById(userId)
                     if (localProfile != null) {
                         _username.value = localProfile.username
                         _avatarUrl.value = localProfile.avatarUrl
                         _error.value = "Couldn't connect. Displaying saved data."
+                        Timber.d("Loaded profile from local cache for user $userId after remote fetch failed.")
                     } else {
                         _error.value = "Failed to load profile and no local data available."
+                        Timber.e("No local data available for user $userId after remote fetch failed.")
                     }
                 }
 
                 // Check admin status regardless of where the profile was loaded from
-                checkAdminStatus(userId)
+                try {
+                    checkAdminStatus(userId)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to check admin status for user $userId.")
+                    _isAdmin.value = false // Ensure admin is false on error
+                }
 
             } catch (e: Exception) {
                 Timber.e(e, "An unexpected error occurred in loadUserProfile")
                 _error.value = e.message ?: "An unexpected error occurred"
             } finally {
                 _isLoading.value = false
+                Timber.d("loadUserProfile finished")
             }
         }
     }
     
     private suspend fun ensureProfileExists(userId: String, email: String) {
         try {
-            val profile = Profile(
-                id = userId,
-                email = email,
-                username = _username.value,
-                avatarUrl = _avatarUrl.value
-            )
-            SupabaseClient.client.from("profiles").upsert(profile)
-            // Reload profile after upsert
-            val profiles = SupabaseClient.client.from("profiles").select {
+            // Create a profile with essential info first
+            val initialProfile = Profile(id = userId, email = email, username = null, avatarUrl = null)
+            SupabaseClient.client.from("profiles").upsert(initialProfile)
+            Timber.d("Initial profile upsert attempted for user $userId")
+
+            // After upsert, reload the profile to get the definitive state
+            val reloadedProfile = SupabaseClient.client.from("profiles").select {
                 filter { eq("id", userId) }
-            }.decodeList<Profile>()
-            if (profiles.isNotEmpty()) {
-                val p = profiles[0]
-                _username.value = p.username
-                _avatarUrl.value = p.avatarUrl
-                profileDao.insertProfile(p)
+            }.decodeList<Profile>().firstOrNull()
+
+            if (reloadedProfile != null) {
+                _username.value = reloadedProfile.username
+                _avatarUrl.value = reloadedProfile.avatarUrl
+                profileDao.insertProfile(reloadedProfile)
+                Timber.d("Successfully reloaded and cached profile after ensuring it exists.")
+            } else {
+                // This is a critical failure, as the profile should exist after upsert
+                _error.value = "Failed to create or verify user profile on the server."
+                Timber.e("Profile upsert for user $userId did not result in a retrievable profile.")
             }
         } catch (e: Exception) {
-            Timber.e(e, "Failed to ensure profile exists")
+            Timber.e(e, "Failed to ensure profile exists for user $userId")
+            _error.value = "Error initializing user profile. Please check connection and restart."
         }
     }
 
