@@ -120,6 +120,6 @@ fun DefaultPreview() {
     NdomogTheme {
         // AppNavigation(authRepository = AuthRepository()) // Provide a mock for preview if needed
         // Just show a simple text for preview
-        androidx.compose.material3.Text("Ndomog Inventory Preview")
+        androidx.compose.material3.Text("Ndomog Investment Preview")
     }
 }
