@@ -8,12 +8,14 @@ color primary_dark
 color purple_200
 color purple_500
 color purple_700
+color splash_background
 color surface_dark
 color teal_200
 color teal_700
 color white
 drawable ic_launcher_background
-drawable ic_launcher_foreground
+drawable ic_stat_notification
+drawable splash_icon
 mipmap ic_launcher
 mipmap ic_launcher_foreground
 mipmap ic_launcher_round
@@ -32,6 +34,11 @@ string error_auth
 string error_generic
 string error_network
 string error_required_field
+string gcm_defaultSenderId
+string google_api_key
+string google_app_id
+string google_crash_reporting_api_key
+string google_storage_bucket
 string item_name
 string low_stock_threshold
 string offline
@@ -39,6 +46,7 @@ string online
 string password
 string pending_actions
 string profile
+string project_id
 string quantity
 string save
 string search
@@ -50,6 +58,7 @@ string sync
 string sync_complete
 string syncing
 style Theme.Ndomog
+style Theme.Ndomog.Splash
 xml backup_rules
 xml data_extraction_rules
 xml file_paths

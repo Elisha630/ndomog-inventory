@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.ndomog.inventory.data.local.ProfileDao
 import com.ndomog.inventory.data.models.Profile
 import com.ndomog.inventory.data.repository.AuthRepository
+import com.google.firebase.messaging.FirebaseMessaging
+import com.ndomog.inventory.data.remote.SupabaseClient
+import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -173,6 +176,17 @@ class AuthViewModel(
         }
 
         _usernameRequired.value = profile.username.isNullOrBlank()
+
+        // Register FCM token after login so background notifications work
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+            viewModelScope.launch {
+                runCatching {
+                    SupabaseClient.client.from("push_subscriptions").upsert(
+                        listOf(mapOf("user_id" to userId, "token" to token, "platform" to "android"))
+                    )
+                }
+            }
+        }
     }
 }
 

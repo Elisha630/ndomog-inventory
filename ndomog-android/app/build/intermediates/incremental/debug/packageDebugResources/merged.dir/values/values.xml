@@ -2,12 +2,13 @@
 <resources>
     <color name="background_dark">#0F1419</color>
     <color name="black">#FF000000</color>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="ic_launcher_background">#F59E0B</color>
     <color name="primary">#F59E0B</color>
     <color name="primary_dark">#D97706</color>
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
+    <color name="splash_background">#0F1419</color>
     <color name="surface_dark">#1A1F26</color>
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
@@ -27,6 +28,11 @@
     <string name="error_generic">An error occurred</string>
     <string name="error_network">Network error</string>
     <string name="error_required_field">This field is required</string>
+    <string name="gcm_defaultSenderId" translatable="false">991427615872</string>
+    <string name="google_api_key" translatable="false">AIzaSyDfZtf3zKPSfbTmImwtKCvAFfZAxpmh6XI</string>
+    <string name="google_app_id" translatable="false">1:991427615872:android:afb99a76e2671fbfa21a65</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyDfZtf3zKPSfbTmImwtKCvAFfZAxpmh6XI</string>
+    <string name="google_storage_bucket" translatable="false">ndomog-a0165.firebasestorage.app</string>
     <string name="item_name">Item Name</string>
     <string name="low_stock_threshold">Low Stock Threshold</string>
     <string name="offline">Offline</string>
@@ -34,6 +40,7 @@
     <string name="password">Password</string>
     <string name="pending_actions">%d pending actions</string>
     <string name="profile">Profile</string>
+    <string name="project_id" translatable="false">ndomog-a0165</string>
     <string name="quantity">Quantity</string>
     <string name="save">Save</string>
     <string name="search">Search</string>
@@ -45,6 +52,14 @@
     <string name="sync_complete">Sync Complete</string>
     <string name="syncing">Syncing…</string>
     <style name="Theme.Ndomog" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:statusBarColor">@color/purple_700</item>
+        <item name="android:statusBarColor">@color/background_dark</item>
+        <item name="android:navigationBarColor">@color/background_dark</item>
+        <item name="android:windowBackground">@color/background_dark</item>
+    </style>
+    <style name="Theme.Ndomog.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/primary</item>
+        <item name="postSplashScreenTheme">@style/Theme.Ndomog</item>
     </style>
 </resources>

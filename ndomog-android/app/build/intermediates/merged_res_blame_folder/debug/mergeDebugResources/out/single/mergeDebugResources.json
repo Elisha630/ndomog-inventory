@@ -1,94 +1,94 @@
 [
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-hdpi_ic_launcher_round.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-hdpi/ic_launcher_round.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/drawable_ic_stat_notification.xml.flat",
+        "source": "com.ndomog.inventory.app-main-83:/drawable/ic_stat_notification.xml"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-hdpi_ic_launcher_foreground.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-hdpi/ic_launcher_foreground.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-xxhdpi/ic_launcher.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-mdpi_ic_launcher_foreground.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-mdpi/ic_launcher_foreground.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-mdpi/ic_launcher_round.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-mdpi_ic_launcher_round.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-mdpi/ic_launcher_round.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.ndomog.inventory.app-main-83:/drawable/ic_launcher_background.xml"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap_ic_launcher_foreground.xml.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap/ic_launcher_foreground.xml"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-xxhdpi/ic_launcher_round.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/drawable_ic_launcher_background.xml.flat",
-        "source": "com.ndomog.inventory.app-main-77:/drawable/ic_launcher_background.xml"
+        "merged": "com.ndomog.inventory.app-debug-81:/xml_file_paths.xml.flat",
+        "source": "com.ndomog.inventory.app-main-83:/xml/file_paths.xml"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-xxxhdpi_ic_launcher.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-xxxhdpi/ic_launcher.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-hdpi_ic_launcher_foreground.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-hdpi/ic_launcher_foreground.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-hdpi_ic_launcher.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-hdpi/ic_launcher.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-mdpi_ic_launcher_foreground.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-mdpi/ic_launcher_foreground.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-mdpi_ic_launcher.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-mdpi/ic_launcher.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-anydpi-v26/ic_launcher_round.xml"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/xml_data_extraction_rules.xml.flat",
-        "source": "com.ndomog.inventory.app-main-77:/xml/data_extraction_rules.xml"
+        "merged": "com.ndomog.inventory.app-debug-81:/xml_data_extraction_rules.xml.flat",
+        "source": "com.ndomog.inventory.app-main-83:/xml/data_extraction_rules.xml"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/xml_backup_rules.xml.flat",
-        "source": "com.ndomog.inventory.app-main-77:/xml/backup_rules.xml"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-anydpi-v26/ic_launcher.xml"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-xxhdpi_ic_launcher.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-xxhdpi/ic_launcher.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/drawable_splash_icon.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/drawable/splash_icon.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/xml_file_paths.xml.flat",
-        "source": "com.ndomog.inventory.app-main-77:/xml/file_paths.xml"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-xxxhdpi/ic_launcher_round.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-anydpi-v26/ic_launcher_round.xml"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-mdpi/ic_launcher.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-xxhdpi_ic_launcher_round.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-xxhdpi/ic_launcher_round.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-xhdpi/ic_launcher.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-xxxhdpi_ic_launcher_foreground.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-xxxhdpi/ic_launcher_foreground.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/xml_backup_rules.xml.flat",
+        "source": "com.ndomog.inventory.app-main-83:/xml/backup_rules.xml"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-xhdpi_ic_launcher.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-xhdpi/ic_launcher.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-xxxhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-xxxhdpi/ic_launcher_foreground.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-xxxhdpi/ic_launcher_round.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-xhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-xhdpi/ic_launcher_foreground.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/drawable-v24_ic_launcher_foreground.xml.flat",
-        "source": "com.ndomog.inventory.app-main-77:/drawable-v24/ic_launcher_foreground.xml"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-xxxhdpi/ic_launcher.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-anydpi-v26_ic_launcher.xml.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-anydpi-v26/ic_launcher.xml"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-hdpi/ic_launcher_round.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-xhdpi_ic_launcher_foreground.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-xhdpi/ic_launcher_foreground.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-hdpi/ic_launcher.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-xxhdpi_ic_launcher_foreground.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-xxhdpi/ic_launcher_foreground.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-xhdpi/ic_launcher_round.png"
     },
     {
-        "merged": "com.ndomog.inventory.app-debug-75:/mipmap-xhdpi_ic_launcher_round.png.flat",
-        "source": "com.ndomog.inventory.app-main-77:/mipmap-xhdpi/ic_launcher_round.png"
+        "merged": "com.ndomog.inventory.app-debug-81:/mipmap-xxhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.ndomog.inventory.app-main-83:/mipmap-xxhdpi/ic_launcher_foreground.png"
     }
 ]

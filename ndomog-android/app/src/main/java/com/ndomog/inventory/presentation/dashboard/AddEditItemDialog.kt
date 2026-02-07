@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -34,7 +35,10 @@ import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.ndomog.inventory.data.remote.SupabaseClient
 import com.ndomog.inventory.data.models.Item
+import com.ndomog.inventory.data.models.ItemPhoto
+import com.ndomog.inventory.data.models.ItemPhotoInsert
 import com.ndomog.inventory.presentation.theme.NdomogColors
+import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.storage.storage
 import java.io.File
 import java.text.SimpleDateFormat
@@ -62,7 +66,7 @@ fun AddEditItemDialog(
     var isNewCategory by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
     var details by remember { mutableStateOf(existingItem?.details ?: "") }
-    var photoUrl by remember { mutableStateOf(existingItem?.photoUrl ?: "") }
+    val photoUrls = remember { mutableStateListOf<String>() }
     var buyingPrice by remember { mutableStateOf(existingItem?.buyingPrice?.toString() ?: "0") }
     var sellingPrice by remember { mutableStateOf(existingItem?.sellingPrice?.toString() ?: "0") }
     var quantity by remember { mutableStateOf(existingItem?.quantity?.toString() ?: "0") }
@@ -74,6 +78,7 @@ fun AddEditItemDialog(
     var showCameraError by remember { mutableStateOf(false) }
     var uploadError by remember { mutableStateOf<String?>(null) }
     var isUploading by remember { mutableStateOf(false) }
+    var isLoadingPhotos by remember { mutableStateOf(false) }
 
     fun getImageExtension(uri: Uri): String {
         val mimeType = context.contentResolver.getType(uri)
@@ -102,6 +107,18 @@ fun AddEditItemDialog(
         SupabaseClient.client.storage.from("item-photos").upload(path, bytes, upsert = false)
         return SupabaseClient.client.storage.from("item-photos").publicUrl(path)
     }
+
+    fun isRemoteUrl(value: String): Boolean {
+        return value.startsWith("http://") || value.startsWith("https://")
+    }
+
+    fun addPhoto(url: String) {
+        if (photoUrls.size >= 5) {
+            uploadError = "Maximum of 5 photos reached"
+            return
+        }
+        photoUrls.add(url)
+    }
     
     // Create a temporary file for camera photo
     fun createImageFile(): File {
@@ -116,7 +133,7 @@ fun AddEditItemDialog(
     ) { uri: Uri? ->
         uri?.let {
             selectedImageUri = it
-            photoUrl = it.toString()
+            addPhoto(it.toString())
         }
     }
     
@@ -126,7 +143,7 @@ fun AddEditItemDialog(
     ) { success ->
         if (success && tempPhotoUri != null) {
             selectedImageUri = tempPhotoUri
-            photoUrl = tempPhotoUri.toString()
+            addPhoto(tempPhotoUri.toString())
         }
     }
     
@@ -155,6 +172,10 @@ fun AddEditItemDialog(
     
     // Function to launch camera safely
     fun launchCamera() {
+        if (photoUrls.size >= 5) {
+            uploadError = "Maximum of 5 photos reached"
+            return
+        }
         try {
             val permission = Manifest.permission.CAMERA
             when {
@@ -175,6 +196,33 @@ fun AddEditItemDialog(
             }
         } catch (e: Exception) {
             showCameraError = true
+        }
+    }
+
+    LaunchedEffect(showDialog, existingItem?.id) {
+        if (!showDialog) return@LaunchedEffect
+        photoUrls.clear()
+        if (existingItem?.id == null) return@LaunchedEffect
+        isLoadingPhotos = true
+        try {
+            val rows = SupabaseClient.client
+                .from("item_photos")
+                .select {
+                    filter { eq("item_id", existingItem.id) }
+                }
+                .decodeList<ItemPhoto>()
+                .sortedWith(compareBy<ItemPhoto> { it.position }.thenBy { it.createdAt ?: "" })
+            if (rows.isNotEmpty()) {
+                photoUrls.addAll(rows.map { it.url }.take(5))
+            } else if (!existingItem.photoUrl.isNullOrBlank()) {
+                existingItem.photoUrl?.let { photoUrls.add(it) }
+            }
+        } catch (_: Exception) {
+            if (!existingItem?.photoUrl.isNullOrBlank()) {
+                existingItem.photoUrl?.let { photoUrls.add(it) }
+            }
+        } finally {
+            isLoadingPhotos = false
         }
     }
 
@@ -458,51 +506,65 @@ fun AddEditItemDialog(
                 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Photo (optional)
+                // Photos (optional)
                 Text(
-                    "Photo (optional)",
+                    "Photos (optional) - up to 5",
                     style = MaterialTheme.typography.labelMedium.copy(
                         color = NdomogColors.TextMuted,
                         fontWeight = FontWeight.Medium
                     ),
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
-                
-                if (photoUrl.isNotEmpty()) {
-                    // Show photo preview with remove option
-                    Box(
+                if (isLoadingPhotos) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = NdomogColors.Primary,
+                        trackColor = NdomogColors.DarkCard
+                    )
+                }
+
+                if (photoUrls.isNotEmpty()) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        AsyncImage(
-                            model = photoUrl,
-                            contentDescription = "Item photo",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                        IconButton(
-                            onClick = { 
-                                photoUrl = ""
-                                selectedImageUri = null
-                            },
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(4.dp)
-                                .size(28.dp)
-                                .background(NdomogColors.Error, RoundedCornerShape(4.dp))
-                        ) {
-                            Icon(
-                                Icons.Filled.Close,
-                                contentDescription = "Remove",
-                                tint = NdomogColors.TextLight,
-                                modifier = Modifier.size(14.dp)
-                            )
+                        photoUrls.forEachIndexed { index, url ->
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(NdomogColors.DarkSecondary)
+                            ) {
+                                AsyncImage(
+                                    model = url,
+                                    contentDescription = "Item photo ${index + 1}",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                                IconButton(
+                                    onClick = { photoUrls.removeAt(index) },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(2.dp)
+                                        .size(24.dp)
+                                        .background(NdomogColors.Error, RoundedCornerShape(4.dp))
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = "Remove",
+                                        tint = NdomogColors.TextLight,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                            }
                         }
                     }
-                } else {
-                    // Upload and Camera buttons
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                if (photoUrls.size < 5) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -512,7 +574,13 @@ fun AddEditItemDialog(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(72.dp)
-                                .clickable { imagePickerLauncher.launch("image/*") },
+                                .clickable {
+                                    if (photoUrls.size >= 5) {
+                                        uploadError = "Maximum of 5 photos reached"
+                                    } else {
+                                        imagePickerLauncher.launch("image/*")
+                                    }
+                                },
                             shape = RoundedCornerShape(8.dp),
                             color = NdomogColors.DarkSecondary,
                             border = androidx.compose.foundation.BorderStroke(1.dp, NdomogColors.DarkBorder)
@@ -530,13 +598,13 @@ fun AddEditItemDialog(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    "Upload",
+                                    "Upload (${photoUrls.size}/5)",
                                     color = NdomogColors.TextMuted,
                                     fontSize = 12.sp
                                 )
                             }
                         }
-                        
+
                         // Camera button - using safe launch
                         Surface(
                             modifier = Modifier
@@ -567,6 +635,12 @@ fun AddEditItemDialog(
                             }
                         }
                     }
+                } else {
+                    Text(
+                        "Maximum of 5 photos reached",
+                        color = NdomogColors.TextMuted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -712,16 +786,40 @@ fun AddEditItemDialog(
                             val itemId = existingItem?.id ?: UUID.randomUUID().toString()
                             scope.launch {
                                 isUploading = true
-                                var finalPhotoUrl: String? = photoUrl.ifEmpty { null }
-                                val localUri = selectedImageUri
-                                if (localUri != null && (localUri.scheme == "content" || localUri.scheme == "file")) {
+                                val requestedPhotos = photoUrls.take(5)
+                                val uploadedUrls = mutableListOf<String>()
+                                for (entry in requestedPhotos) {
+                                    if (isRemoteUrl(entry)) {
+                                        uploadedUrls.add(entry)
+                                        continue
+                                    }
+                                    val uri = runCatching { Uri.parse(entry) }.getOrNull()
+                                    if (uri == null) continue
                                     try {
-                                        finalPhotoUrl = uploadItemPhoto(itemId, localUri)
+                                        val uploaded = uploadItemPhoto(itemId, uri)
+                                        uploadedUrls.add(uploaded)
                                     } catch (e: Exception) {
                                         uploadError = e.message ?: "Failed to upload image"
                                         isUploading = false
                                         return@launch
                                     }
+                                }
+                                val finalPhotoUrl: String? = uploadedUrls.firstOrNull()
+                                // Replace photos for this item
+                                try {
+                                    SupabaseClient.client.from("item_photos").delete {
+                                        filter { eq("item_id", itemId) }
+                                    }
+                                    if (uploadedUrls.isNotEmpty()) {
+                                        val inserts = uploadedUrls.mapIndexed { index, url ->
+                                            ItemPhotoInsert(itemId = itemId, url = url, position = index)
+                                        }
+                                        SupabaseClient.client.from("item_photos").insert(inserts)
+                                    }
+                                } catch (e: Exception) {
+                                    uploadError = e.message ?: "Failed to save photos"
+                                    isUploading = false
+                                    return@launch
                                 }
                                 val newItem = Item(
                                     id = itemId,

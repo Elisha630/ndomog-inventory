@@ -24,6 +24,7 @@ data class NotificationInsert(
     val id: String,
     val user_id: String,
     val action_user_id: String,
+    val action_user_email: String,
     val action: String,
     val item_name: String,
     val details: String?,
@@ -231,6 +232,9 @@ class ItemRepository(
         try {
             val currentUser = authRepository.getCurrentUser() ?: return
             val currentUserId = currentUser.id
+            val currentUserEmail = currentUser.email
+                ?: authRepository.getEmailFromSession()
+                ?: "unknown@local"
             
             // Get all other users from profiles table
             val allProfiles = supabase.from("profiles")
@@ -252,6 +256,7 @@ class ItemRepository(
                     id = UUID.randomUUID().toString(),
                     user_id = userId,
                     action_user_id = currentUserId,
+                    action_user_email = currentUserEmail,
                     action = action,
                     item_name = itemName,
                     details = details,

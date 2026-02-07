@@ -9,7 +9,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -17,21 +23,19 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import com.ndomog.inventory.presentation.AppNavigation
 import com.ndomog.inventory.presentation.auth.PinLockScreen
 import com.ndomog.inventory.presentation.theme.NdomogTheme
 import com.ndomog.inventory.utils.PinPreferences
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import io.github.jan.supabase.postgrest.from
+import com.ndomog.inventory.data.remote.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
 
 class MainActivity : ComponentActivity() {
     private val requestNotificationPermissionLauncher = registerForActivityResult(
@@ -56,6 +60,9 @@ class MainActivity : ComponentActivity() {
         }
         
         val app = application as NdomogApplication
+
+        // Ensure FCM token is registered once user is available
+        registerFcmTokenIfAvailable()
         
         setContent {
             NdomogTheme {
@@ -64,6 +71,32 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainAppContent(app, this@MainActivity)
+                }
+            }
+        }
+    }
+
+    private fun registerFcmTokenIfAvailable() {
+        val user = SupabaseClient.client.auth.currentUserOrNull() ?: return
+        val prefs = getSharedPreferences("ndomog_prefs", MODE_PRIVATE)
+        val pending = prefs.getString("pending_fcm_token", null)
+        if (!pending.isNullOrBlank()) {
+            CoroutineScope(Dispatchers.IO).launch {
+                runCatching {
+                    SupabaseClient.client.from("push_subscriptions").upsert(
+                        listOf(mapOf("user_id" to user.id, "token" to pending, "platform" to "android"))
+                    )
+                    prefs.edit().remove("pending_fcm_token").apply()
+                }
+            }
+        }
+
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+            CoroutineScope(Dispatchers.IO).launch {
+                runCatching {
+                    SupabaseClient.client.from("push_subscriptions").upsert(
+                        listOf(mapOf("user_id" to user.id, "token" to token, "platform" to "android"))
+                    )
                 }
             }
         }

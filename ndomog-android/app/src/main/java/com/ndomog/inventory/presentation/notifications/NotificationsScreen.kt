@@ -93,6 +93,15 @@ fun NotificationsScreen(
                     }
                 },
                 actions = {
+                    if (unreadCount > 0) {
+                        TextButton(onClick = { viewModel.markAllAsRead() }) {
+                            Text(
+                                "Mark read",
+                                color = NdomogColors.TextMuted,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
                     if (notifications.isNotEmpty()) {
                         TextButton(onClick = { viewModel.clearAllNotifications() }) {
                             Text(

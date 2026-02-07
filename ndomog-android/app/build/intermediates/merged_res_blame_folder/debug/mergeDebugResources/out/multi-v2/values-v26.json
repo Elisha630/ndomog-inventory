@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.ndomog.inventory.app-mergeDebugResources-73:/values-v26/values-v26.xml",
+            "outputFile": "com.ndomog.inventory.app-mergeDebugResources-79:/values-v26/values-v26.xml",
             "map": [
                 {
-                    "source": "/home/zer0day/.gradle/caches/9.0-milestone-1/transforms/6ac32e50922499e04369a7b379a94845/transformed/appcompat-1.6.1/res/values-v26/values-v26.xml",
+                    "source": "/home/zer0day/.gradle/caches/9.0-milestone-1/transforms/7d1230e0dca56d95a2fa8c7a63b43ed6/transformed/appcompat-1.6.1/res/values-v26/values-v26.xml",
                     "from": {
                         "startLines": "2,3,4,8,12,16",
                         "startColumns": "4,4,4,4,4,4",

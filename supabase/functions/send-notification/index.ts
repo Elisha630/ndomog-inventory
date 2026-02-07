@@ -7,7 +7,7 @@ const corsHeaders = {
 
 interface DeviceToken {
   token: string;
-  platform: string;
+  platform?: string;
   user_id: string;
 }
 
@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
 
       // Get device tokens for this specific user
       const { data: deviceTokens, error: tokensError } = await supabase
-        .from("device_tokens")
+        .from("push_subscriptions")
         .select("token, platform, user_id")
         .eq("user_id", user_id);
 
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
           const accessToken = await getAccessToken(serviceAccount);
 
           const androidTokens = (deviceTokens as DeviceToken[])
-            .filter((dt) => dt.platform === "android")
+            .filter((dt) => !dt.platform || dt.platform === "android")
             .map((dt) => dt.token);
 
           console.log(`Sending push to ${androidTokens.length} Android devices`);
@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
                         notification: {
                           icon: "ic_stat_notification",
                           sound: "default",
-                          channelId: "ndomog_alerts_v2",
+                          channelId: "ndomog_inventory_channel",
                         },
                       },
                       data: {

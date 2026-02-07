@@ -1,10 +1,20 @@
 {
     "logs": [
         {
-            "outputFile": "com.ndomog.inventory.app-mergeDebugResources-73:/values-v23/values-v23.xml",
+            "outputFile": "com.ndomog.inventory.app-mergeDebugResources-79:/values-v23/values-v23.xml",
             "map": [
                 {
-                    "source": "/home/zer0day/.gradle/caches/9.0-milestone-1/transforms/6ac32e50922499e04369a7b379a94845/transformed/appcompat-1.6.1/res/values-v23/values-v23.xml",
+                    "source": "/home/zer0day/.gradle/caches/9.0-milestone-1/transforms/ce99e4ac1ddff492861667c2d798438d/transformed/work-runtime-2.9.0/res/values-v23/values-v23.xml",
+                    "from": {
+                        "startLines": "2,3",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,121",
+                        "endColumns": "65,62",
+                        "endOffsets": "116,179"
+                    }
+                },
+                {
+                    "source": "/home/zer0day/.gradle/caches/9.0-milestone-1/transforms/7d1230e0dca56d95a2fa8c7a63b43ed6/transformed/appcompat-1.6.1/res/values-v23/values-v23.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,20,34,35,36,39,43,44,45,46",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -20,16 +30,6 @@
                         "endLines": "4,5,6,7,21,35,36,37,40,44,45,46,47,51",
                         "endColumns": "134,134,74,86,12,12,118,126,12,12,114,106,112,12",
                         "endOffsets": "314,449,524,611,1349,2099,2218,2345,2567,2791,2906,3013,3126,3356"
-                    }
-                },
-                {
-                    "source": "/home/zer0day/.gradle/caches/9.0-milestone-1/transforms/bacf4b89074d49668c0858dbc89461ec/transformed/work-runtime-2.9.0/res/values-v23/values-v23.xml",
-                    "from": {
-                        "startLines": "2,3",
-                        "startColumns": "4,4",
-                        "startOffsets": "55,121",
-                        "endColumns": "65,62",
-                        "endOffsets": "116,179"
                     }
                 }
             ]

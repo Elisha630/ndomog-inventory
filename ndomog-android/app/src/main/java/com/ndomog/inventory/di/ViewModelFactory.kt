@@ -45,7 +45,7 @@ class ViewModelFactory(
                 ActivityViewModel(database) as T
             }
             modelClass.isAssignableFrom(NotificationsViewModel::class.java) -> {
-                NotificationsViewModel(database) as T
+                NotificationsViewModel(authRepository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }

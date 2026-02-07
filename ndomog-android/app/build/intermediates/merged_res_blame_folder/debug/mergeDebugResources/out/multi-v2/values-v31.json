@@ -1,0 +1,47 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.ndomog.inventory.app-mergeDebugResources-79:/values-v31/values-v31.xml",
+            "map": [
+                {
+                    "source": "/home/zer0day/.gradle/caches/9.0-milestone-1/transforms/a8982cea0d2eee85d6ed3873461dd601/transformed/core-splashscreen-1.0.1/res/values-v31/values-v31.xml",
+                    "from": {
+                        "startLines": "2,9",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,473",
+                        "endLines": "8,13",
+                        "endColumns": "12,12",
+                        "endOffsets": "468,697"
+                    },
+                    "to": {
+                        "startLines": "16,23",
+                        "startColumns": "4,4",
+                        "startOffsets": "1040,1458",
+                        "endLines": "22,27",
+                        "endColumns": "12,12",
+                        "endOffsets": "1453,1682"
+                    }
+                },
+                {
+                    "source": "/home/zer0day/StudioProjects/ndomog/ndomog-android/app/src/main/res/values-v31/themes.xml",
+                    "from": {
+                        "startLines": "2,11",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,651",
+                        "endLines": "9,16",
+                        "endColumns": "12,12",
+                        "endOffsets": "641,1040"
+                    },
+                    "to": {
+                        "startLines": "2,10",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,646",
+                        "endLines": "9,15",
+                        "endColumns": "12,12",
+                        "endOffsets": "641,1035"
+                    }
+                }
+            ]
+        }
+    ]
+}

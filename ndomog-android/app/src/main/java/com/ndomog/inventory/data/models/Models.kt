@@ -111,6 +111,25 @@ enum class ActionType {
     ADD_CATEGORY
 }
 
+@Serializable
+data class ItemPhoto(
+    val id: String = "",
+    @SerialName("item_id")
+    val itemId: String,
+    val url: String,
+    val position: Int = 0,
+    @SerialName("created_at")
+    val createdAt: String? = null
+)
+
+@Serializable
+data class ItemPhotoInsert(
+    @SerialName("item_id")
+    val itemId: String,
+    val url: String,
+    val position: Int
+)
+
 data class SyncResult(
     val success: Boolean,
     val itemsSynced: Int = 0,

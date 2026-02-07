@@ -42,6 +42,14 @@
             </intent-filter>
         </activity>
 
+        <service
+            android:name=".services.FirebaseMessagingServiceImpl"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <!-- WorkManager -->
         <provider
             android:name="androidx.startup.InitializationProvider"

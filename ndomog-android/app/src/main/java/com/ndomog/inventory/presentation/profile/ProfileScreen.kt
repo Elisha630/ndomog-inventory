@@ -44,6 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.ndomog.inventory.BuildConfig
 import com.ndomog.inventory.di.ViewModelFactory
 import com.ndomog.inventory.presentation.theme.NdomogColors
 import com.ndomog.inventory.utils.ThemePreferences
@@ -57,8 +58,8 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 
 // App version info
-private const val APP_VERSION = "1.2.3"
-private const val BUILD_NUMBER = "42"
+private const val APP_VERSION = BuildConfig.VERSION_NAME
+private const val BUILD_NUMBER = BuildConfig.VERSION_CODE
 
 /**
  * Format error messages to be user-friendly

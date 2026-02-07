@@ -9,6 +9,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -39,10 +42,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.ndomog.inventory.data.models.Item
+import com.ndomog.inventory.data.models.ItemPhoto
 import com.ndomog.inventory.di.ViewModelFactory
+import com.ndomog.inventory.presentation.notifications.NotificationsViewModel
 import com.ndomog.inventory.presentation.theme.NdomogColors
 import com.ndomog.inventory.data.remote.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.launch
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,18 +67,22 @@ fun DashboardScreen(
     // Also create a ProfileViewModel to get the user avatar
     val profileViewModel: com.ndomog.inventory.presentation.profile.ProfileViewModel = 
         viewModel(factory = viewModelFactory)
+    val notificationsViewModel: NotificationsViewModel = viewModel(factory = viewModelFactory)
     
     val items by viewModel.items.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val userAvatar by profileViewModel.avatarUrl.collectAsState()
+    val unreadCount by notificationsViewModel.unreadCount.collectAsState()
     val accessToken = SupabaseClient.client.auth.currentSessionOrNull()?.accessToken
 
     var showAddEditDialog by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<Item?>(null) }
     var showDeleteDialog by remember { mutableStateOf<Item?>(null) }
     var showQuantityDialog by remember { mutableStateOf<Pair<Item, Int>?>(null) }
-    var showPhotoViewer by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var showPhotoViewer by remember { mutableStateOf<PhotoViewerState?>(null) }
+    var isPhotoViewerLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     
     // Search and filter state
     var searchQuery by remember { mutableStateOf("") }
@@ -145,12 +156,34 @@ fun DashboardScreen(
                 ),
                 actions = {
                     // Notification Icon
-                    IconButton(onClick = onNavigateToNotifications) {
-                        Icon(
-                            Icons.Outlined.Notifications,
-                            contentDescription = "Notifications",
-                            tint = NdomogColors.TextMuted
-                        )
+                    IconButton(onClick = {
+                        notificationsViewModel.markAllAsRead()
+                        onNavigateToNotifications()
+                    }) {
+                        Box {
+                            Icon(
+                                Icons.Outlined.Notifications,
+                                contentDescription = "Notifications",
+                                tint = NdomogColors.TextMuted,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            if (unreadCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 6.dp, y = (-4).dp)
+                                        .background(NdomogColors.Error, RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (unreadCount > 99) "99+" else unreadCount.toString(),
+                                        color = Color.White,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
                     }
                     // Profile Avatar
                     IconButton(onClick = onNavigateToProfile) {
@@ -340,8 +373,19 @@ fun DashboardScreen(
                                         selectedItems + item.id
                                     }
                                 },
-                                onImageClick = { url ->
-                                    showPhotoViewer = Pair(url, item.name)
+                                onImageClick = { clickedItem ->
+                                    scope.launch {
+                                        isPhotoViewerLoading = true
+                                        val urls = fetchItemPhotoUrls(clickedItem)
+                                        isPhotoViewerLoading = false
+                                        if (urls.isNotEmpty()) {
+                                            showPhotoViewer = PhotoViewerState(
+                                                itemName = clickedItem.name,
+                                                photoUrls = urls,
+                                                initialIndex = 0
+                                            )
+                                        }
+                                    }
                                 },
                                 onQuantityChange = { change ->
                                     showQuantityDialog = Pair(item, change)
@@ -423,12 +467,28 @@ fun DashboardScreen(
         }
         
         // Photo Viewer Dialog
-        showPhotoViewer?.let { (url, name) ->
+        showPhotoViewer?.let { state ->
             PhotoViewerDialog(
-                photoUrl = url,
-                itemName = name,
+                photoUrls = state.photoUrls,
+                itemName = state.itemName,
+                initialIndex = state.initialIndex,
                 onDismiss = { showPhotoViewer = null }
             )
+        }
+        if (isPhotoViewerLoading) {
+            Dialog(onDismissRequest = { isPhotoViewerLoading = false }) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    colors = CardDefaults.cardColors(containerColor = NdomogColors.DarkCard),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = NdomogColors.Primary)
+                    }
+                }
+            }
         }
         
         // Bulk Update Dialog
@@ -584,32 +644,6 @@ fun SearchBar(
                 }
             }
 
-            // Bulk Edit Toggle (moved next to categories)
-            Surface(
-                onClick = onToggleBulkEdit,
-                shape = RoundedCornerShape(8.dp),
-                color = if (bulkEditMode) NdomogColors.Primary else NdomogColors.DarkSecondary,
-                border = BorderStroke(1.dp, NdomogColors.DarkBorder)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        Icons.Filled.Layers,
-                        contentDescription = null,
-                        tint = if (bulkEditMode) NdomogColors.TextOnPrimary else NdomogColors.TextMuted,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        if (bulkEditMode) "Cancel" else "Bulk Edit",
-                        color = if (bulkEditMode) NdomogColors.TextOnPrimary else NdomogColors.TextLight,
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
-            }
-
             // Category Dropdown (icon-only)
             Box {
                 IconButton(
@@ -644,6 +678,32 @@ fun SearchBar(
                             }
                         )
                     }
+                }
+            }
+
+            // Bulk Edit Toggle (moved to end)
+            Surface(
+                onClick = onToggleBulkEdit,
+                shape = RoundedCornerShape(8.dp),
+                color = if (bulkEditMode) NdomogColors.Primary else NdomogColors.DarkSecondary,
+                border = BorderStroke(1.dp, NdomogColors.DarkBorder)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Layers,
+                        contentDescription = null,
+                        tint = if (bulkEditMode) NdomogColors.TextOnPrimary else NdomogColors.TextMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        if (bulkEditMode) "Cancel" else "Bulk Edit",
+                        color = if (bulkEditMode) NdomogColors.TextOnPrimary else NdomogColors.TextLight,
+                        style = MaterialTheme.typography.labelMedium
+                    )
                 }
             }
         }
@@ -684,7 +744,7 @@ fun CompactItemCard(
     bulkEditMode: Boolean,
     onToggleExpand: () -> Unit,
     onToggleSelect: () -> Unit,
-    onImageClick: (String) -> Unit,
+    onImageClick: (Item) -> Unit,
     onQuantityChange: (Int) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
@@ -738,7 +798,7 @@ fun CompactItemCard(
                         .clip(RoundedCornerShape(8.dp))
                         .background(NdomogColors.DarkSecondary)
                         .clickable(enabled = item.photoUrl != null) {
-                            item.photoUrl?.let { onImageClick(it) }
+                            item.photoUrl?.let { onImageClick(item) }
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -1065,11 +1125,19 @@ fun QuantityChangeDialog(
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 fun PhotoViewerDialog(
-    photoUrl: String,
+    photoUrls: List<String>,
     itemName: String,
+    initialIndex: Int = 0,
     onDismiss: () -> Unit
 ) {
+    if (photoUrls.isEmpty()) return
+    val scope = rememberCoroutineScope()
+    val pagerState = rememberPagerState(
+        initialPage = initialIndex.coerceIn(0, photoUrls.lastIndex),
+        pageCount = { photoUrls.size }
+    )
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -1079,12 +1147,48 @@ fun PhotoViewerDialog(
             shape = RoundedCornerShape(16.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                AsyncImage(
-                    model = photoUrl,
-                    contentDescription = itemName,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
+                HorizontalPager(state = pagerState) { page ->
+                    AsyncImage(
+                        model = photoUrls[page],
+                        contentDescription = itemName,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        if (pagerState.currentPage > 0) {
+                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(8.dp)
+                        .background(NdomogColors.DarkBackground.copy(alpha = 0.7f), CircleShape)
+                ) {
+                    Icon(
+                        Icons.Filled.ChevronLeft,
+                        contentDescription = "Previous",
+                        tint = NdomogColors.TextLight
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        if (pagerState.currentPage < photoUrls.lastIndex) {
+                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(8.dp)
+                        .background(NdomogColors.DarkBackground.copy(alpha = 0.7f), CircleShape)
+                ) {
+                    Icon(
+                        Icons.Filled.ChevronRight,
+                        contentDescription = "Next",
+                        tint = NdomogColors.TextLight
+                    )
+                }
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier
@@ -1098,8 +1202,54 @@ fun PhotoViewerDialog(
                         tint = NdomogColors.TextLight
                     )
                 }
+                if (photoUrls.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        repeat(photoUrls.size) { index ->
+                            val isActive = index == pagerState.currentPage
+                            Box(
+                                modifier = Modifier
+                                    .size(if (isActive) 8.dp else 6.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (isActive) NdomogColors.Primary
+                                        else NdomogColors.TextMuted.copy(alpha = 0.6f)
+                                    )
+                            )
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+data class PhotoViewerState(
+    val itemName: String,
+    val photoUrls: List<String>,
+    val initialIndex: Int = 0
+)
+
+private suspend fun fetchItemPhotoUrls(item: Item): List<String> {
+    return try {
+        val rows = SupabaseClient.client
+            .from("item_photos")
+            .select {
+                filter { eq("item_id", item.id) }
+            }
+            .decodeList<ItemPhoto>()
+            .sortedWith(compareBy<ItemPhoto> { it.position }.thenBy { it.createdAt ?: "" })
+        if (rows.isNotEmpty()) {
+            rows.map { it.url }.take(5)
+        } else {
+            item.photoUrl?.let { listOf(it) } ?: emptyList()
+        }
+    } catch (_: Exception) {
+        item.photoUrl?.let { listOf(it) } ?: emptyList()
     }
 }
 
