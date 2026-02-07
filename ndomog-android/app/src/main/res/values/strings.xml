@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Ndomog</string>
+    <string name="app_name">Ndomog Investment</string>
     
     <!-- Authentication -->
     <string name="email">Email</string>
